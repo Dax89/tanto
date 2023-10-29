@@ -1,2 +1,2 @@
 # tanto
-Multibackend, scriptable GUI framework
+ Universal GUI for scripts 
