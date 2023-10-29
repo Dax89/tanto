@@ -20,13 +20,22 @@ struct ImageInfo
 
 struct WidgetInfo
 {
-    BackendGtkImpl* self;
+    Backend* self;
     tanto::types::Widget twidget;
 };
 
+struct TreeViewInfo
+{
+    nlohmann::json row;
+    std::string value;
+};
+
+using TreePathMap = std::unordered_map<std::string, TreeViewInfo>;
+
+std::unordered_map<GtkTreeStore*, TreePathMap> g_treepath;
 std::unordered_map<GtkWidget*, WidgetInfo> g_widgets;
 std::unordered_map<GtkWidget*, ImageInfo> g_images;
-std::unordered_map<GtkWidget*, int> g_nrows;
+std::unordered_map<GtkWidget*, int> g_ngridrows;
 
 [[nodiscard]] GtkWidget* gtkcreate_label(const std::string& text, gfloat xalign = 0.0)
 {
@@ -38,7 +47,7 @@ std::unordered_map<GtkWidget*, int> g_nrows;
 [[nodiscard]] GtkWidget* gtkcreate_grid()
 {
     GtkWidget* w = gtk_grid_new();
-    g_nrows[w] = 0;
+    g_ngridrows[w] = 0;
     return w;
 }
 
@@ -54,10 +63,10 @@ void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget&
         if(gtk_widget_get_name(parent) == FORM_WIDGET) {
             gtk_grid_attach(grid, 
                             gtkcreate_label(w.prop<std::string>("label").c_str(), 1.0),
-                            0, g_nrows[parent], 1, 1);
+                            0, g_ngridrows[parent], 1, 1);
 
-            gtk_grid_attach(grid, arg, 1, g_nrows[parent], 1, 1);
-            ++g_nrows[parent];
+            gtk_grid_attach(grid, arg, 1, g_ngridrows[parent], 1, 1);
+            ++g_ngridrows[parent];
         }
         else {
 
@@ -72,8 +81,7 @@ void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget&
     }
     else if(GTK_IS_BOX(parent))
     {
-        bool isspace = std::string_view{gtk_widget_get_name(arg)} == SPACE_WIDGET;
-        bool fill = (isspace || GTK_IS_SCROLLED_WINDOW(arg)) ? true : w.fill;
+        bool fill = std::string_view{gtk_widget_get_name(arg)} == SPACE_WIDGET ? true : w.fill;
         gtk_box_pack_start(GTK_BOX(parent), arg, fill, fill, 0);
     }
     else if(GTK_IS_CONTAINER(parent)) gtk_container_add(GTK_CONTAINER(parent), arg);
@@ -82,8 +90,10 @@ void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget&
 
 GtkWidget* setup_widget(GtkWidget* w, const tanto::types::Widget& arg, const std::any& parent)
 {
+    gtk_widget_set_size_request(w, arg.width ? arg.width : -1,
+                                   arg.height ? arg.height : -1);
+
     gtk_widget_set_sensitive(w, arg.enabled);
-    gtk_widget_set_size_request(w, arg.width, arg.height);
     apply_parent(w, gtkcontainer_cast(parent), arg);
     return w;
 }
@@ -134,7 +144,7 @@ gboolean resize_image(GtkWidget *widget, GdkRectangle *allocation, gpointer /* u
     return lhs + ":" + std::to_string(rhs);
 }
 
-void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::vector<std::string>& selections, GtkTreeIter* parent = nullptr, const std::string& path = {})
+void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::vector<std::string>& selections, const tanto::Header& header, GtkTreeIter* parent = nullptr, const std::string& path = {}, bool haschildren = true)
 {
     for(size_t i = 0; i < items.size(); i++)
     {
@@ -143,16 +153,116 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
         GtkTreeIter iter;
         gtk_tree_store_append(model, &iter, parent);
 
+        std::string currpath = gtktree_createpath(path, i);
+        nlohmann::json row = nlohmann::json::object();
+
         std::visit(tanto::utils::Overload{
                 [&](tanto::types::Widget& a) {
-                    gtk_tree_store_set(model, &iter, 0, a.text.c_str(), -1); 
-                    std::string currpath = gtktree_createpath(path, i);
+                    if(!header.empty()) {
+                        for(size_t j = 0; j < header.size(); j++) {
+                            if(!a.has_prop(header[j].id)) continue;
+                            nlohmann::json cell = a.prop<nlohmann::json>(header[j].id);
+                            gtk_tree_store_set(model, &iter, j, tanto::stringify(cell.dump()).c_str(), -1); 
+                            row[header[j].id] = cell;
+                        }
+                    }
+                    else
+                        gtk_tree_store_set(model, &iter, 0, a.text.c_str(), -1); 
+
+                    g_treepath[model][currpath].value = a.text;
                     if(a.prop<bool>("selected")) selections.push_back(currpath);
-                    gtktree_add(model, a.items, selections, &iter, currpath);
+                    if(haschildren) gtktree_add(model, a.items, selections, header, &iter, currpath, haschildren);
                 },
-                [&](std::string& a) { gtk_tree_store_set(model, &iter, 0, a.c_str(), -1); }
+                [&](std::string& a) { 
+                    if(header.empty()) gtk_tree_store_set(model, &iter, 0, a.c_str(), -1);
+                    else except("Invalid model item: '{}'", a);
+                    g_treepath[model][currpath].value = a;
+                }
         }, item);
+
+        if(!header.empty()) g_treepath[model][currpath].row = row;
     }
+}
+
+[[nodiscard]] GtkWidget* gtktree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true)
+{
+    tanto::Header header = tanto::parse_header(arg);
+    std::vector<std::string> selections;
+
+    GtkTreeStore* model = nullptr;
+
+    if(!header.empty())
+    {
+        std::vector<GType> columns;
+        columns.resize(header.size(), G_TYPE_STRING);
+        model = gtk_tree_store_newv(header.size(), columns.data());
+    }
+    else
+        model = gtk_tree_store_new(1, G_TYPE_STRING);
+
+    assume(model);
+    gtktree_add(model, const_cast<tanto::types::MultiValueList&>(arg.items), selections, header, nullptr, {}, haschildren);
+
+    GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
+    GtkWidget* w = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(w), !header.empty());
+    gtk_tree_view_set_show_expanders(GTK_TREE_VIEW(w), haschildren);
+
+    g_widgets[w] = WidgetInfo{self, arg};
+
+    if(!header.empty())
+    {
+        for(const tanto::HeaderItem& hitem : header)
+            gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, hitem.text.c_str(), renderer, "text", 0, nullptr);
+    }
+    else
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, nullptr, renderer, "text", 0, nullptr);
+
+    GtkWidget* scroll = gtk_scrolled_window_new(nullptr, nullptr);
+    gtk_container_add(GTK_CONTAINER(scroll), w);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+    if(!selections.empty())
+    {
+        GtkTreePath* treepath = gtk_tree_path_new_from_string(selections.back().c_str());
+        gtk_tree_view_expand_to_path(GTK_TREE_VIEW(w), treepath);
+        gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(w), treepath, nullptr, true, 0.5, 0.0);
+        gtk_tree_view_set_cursor(GTK_TREE_VIEW(w), treepath, nullptr, false);
+        gtk_tree_path_free(treepath);
+    }
+
+    if(arg.has_id())
+    {
+        g_signal_connect(w, "button-press-event", G_CALLBACK(+[](GtkWidget* sender, GdkEventButton* event, BackendGtkImpl* s) {
+            if(event->button != 1 || event->type != GDK_2BUTTON_PRESS) return false;
+
+            GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(sender));
+            assume(treeselection);
+
+            GtkTreeModel* treemodel = nullptr;
+            GtkTreeIter iter;
+
+            if(gtk_tree_selection_get_selected(treeselection, &treemodel, &iter)) {
+                assume(treemodel);
+
+                GtkTreePath* treepath = gtk_tree_model_get_path(treemodel, &iter);
+                char* treepathstring = gtk_tree_path_to_string(treepath);
+                gint depth = gtk_tree_path_get_depth(treepath); assume(depth);
+                gint* indices = gtk_tree_path_get_indices(treepath); assume(indices);
+
+                const TreeViewInfo& tvi = g_treepath[GTK_TREE_STORE(treemodel)][treepathstring];
+                gint index = indices[depth - 1];
+                g_free(treepathstring);
+                gtk_tree_path_free(treepath);
+
+                s->selected(g_widgets[sender].twidget, index, tvi.value, tvi.row);
+            }
+
+            return true;
+        }), self);
+    }
+
+    return setup_widget(scroll, arg, parent);
 }
 
 } // namespace
@@ -218,7 +328,6 @@ void BackendGtkImpl::filechooser_show(GtkFileChooserAction action, const std::st
     }
 }
 
-
 std::any BackendGtkImpl::new_window(const tanto::types::Window& arg)
 {
     m_mainwindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -229,7 +338,7 @@ std::any BackendGtkImpl::new_window(const tanto::types::Window& arg)
     gtk_window_set_resizable(GTK_WINDOW(m_mainwindow), !arg.fixed);
 
     if(!arg.x && !arg.y)
-        gtk_window_set_position(GTK_WINDOW(m_mainwindow), GTK_WIN_POS_CENTER_ALWAYS);
+        gtk_window_set_position(GTK_WINDOW(m_mainwindow), GTK_WIN_POS_CENTER);
     else
         gtk_window_move(GTK_WINDOW(m_mainwindow), arg.x, arg.y);
 
@@ -431,88 +540,8 @@ std::any BackendGtkImpl::new_check(const tanto::types::Widget& arg, const std::a
     return setup_widget(w, arg, parent);
 }
 
-std::any BackendGtkImpl::new_list(const tanto::types::Widget& arg, const std::any& parent)
-{
-    GtkWidget* w = gtk_list_box_new();
-    gint i = 0;
-
-    for(auto item : arg.items)
-    {
-        std::visit(tanto::utils::Overload{
-                [&](tanto::types::Widget& a) {
-                    gtk_list_box_insert(GTK_LIST_BOX(w), gtkcreate_label(a.text), -1);
-
-                    if(a.prop<bool>("selected")) {
-                        GtkListBoxRow* row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(w), i);
-                        assume(row);
-                        gtk_list_box_select_row(GTK_LIST_BOX(w), row);
-                    }
-                },
-                [&](std::string& a) { gtk_list_box_insert(GTK_LIST_BOX(w), gtkcreate_label(a), -1); }
-        }, item);
-
-        ++i;
-    }
-
-    GtkWidget* scroll = gtk_scrolled_window_new(nullptr, nullptr);
-    gtk_container_add(GTK_CONTAINER(scroll), w);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), 
-                                   GTK_POLICY_AUTOMATIC,
-                                   GTK_POLICY_AUTOMATIC);
-
-    if(arg.has_id())
-    {
-        g_signal_connect(w, "button-press-event", G_CALLBACK(+[](GtkWidget* sender, GdkEventButton* event, GtkWidget* s) {
-            if(event->button != 1 || event->type != GDK_2BUTTON_PRESS) return;
-
-            GtkListBoxRow* row = gtk_list_box_get_selected_row(GTK_LIST_BOX(sender));
-            if(!row) return;
-
-            int idx = gtk_list_box_row_get_index(row);
-            if(idx == -1) return;
-
-            g_widgets.at(s).self->selected(g_widgets.at(s).twidget, idx, g_widgets.at(s).twidget.items[idx]);
-        }), scroll);
-    }
-
-    return setup_widget(scroll, arg, parent);
-}
-
-std::any BackendGtkImpl::new_tree(const tanto::types::Widget& arg, const std::any& parent)
-{
-    std::vector<std::string> selections;
-    GtkTreeStore* model = gtk_tree_store_new(1, G_TYPE_STRING);
-    gtktree_add(model, const_cast<tanto::types::MultiValueList&>(arg.items), selections);
-
-    GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
-    GtkWidget* w = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
-    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(w), false);
-
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w),
-                                                -1,
-                                                nullptr,
-                                                renderer,
-                                                "text", 0,
-                                                nullptr);
-
-    GtkWidget* scroll = gtk_scrolled_window_new(nullptr, nullptr);
-    gtk_container_add(GTK_CONTAINER(scroll), w);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), 
-                                   GTK_POLICY_AUTOMATIC,
-                                   GTK_POLICY_AUTOMATIC);
-
-    if(!selections.empty())
-    {
-        GtkTreePath* treepath = gtk_tree_path_new_from_string(selections.back().c_str());
-        gtk_tree_view_expand_to_path(GTK_TREE_VIEW(w), treepath);
-        gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(w), treepath, nullptr, true, 0.5, 0.0);
-        gtk_tree_view_set_cursor(GTK_TREE_VIEW(w), treepath, nullptr, false);
-        gtk_tree_path_free(treepath);
-    }
-
-    return setup_widget(scroll, arg, parent);
-}
-
+std::any BackendGtkImpl::new_list(const tanto::types::Widget& arg, const std::any& parent) { return gtktree_new(this, arg, parent, false); }
+std::any BackendGtkImpl::new_tree(const tanto::types::Widget& arg, const std::any& parent) { return gtktree_new(this, arg, parent); }
 std::any BackendGtkImpl::new_tabs(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtk_notebook_new(), arg, parent); }
 std::any BackendGtkImpl::new_row(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, arg.prop<gint>("spacing", DEFAULT_SPACING)), arg, parent); }
 std::any BackendGtkImpl::new_column(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtk_box_new(GTK_ORIENTATION_VERTICAL, arg.prop<gint>("spacing", DEFAULT_SPACING)), arg, parent); }

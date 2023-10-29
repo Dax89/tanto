@@ -35,7 +35,7 @@ std::any Backend::process(const tanto::types::Widget& arg, const std::any& paren
         w.title.clear();
 
         tanto::types::Widget l{"column"};
-        l.fill = arg.fill;
+        l.fill = arg.fill; // Propagate "fill" status
         l.items.push_back(t);
         l.items.push_back(w);
 

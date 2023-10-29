@@ -33,6 +33,20 @@ namespace tanto {
 
 namespace fs = std::filesystem;
 
+Header parse_header(const types::Widget& w)
+{
+    Header header;
+    nlohmann::json rawheader = w.prop<nlohmann::json::array_t>("header");
+
+    for(const auto& h : rawheader)
+    {
+        if(h.is_string()) header.emplace_back(HeaderItem{h, h});
+        else header.push_back(h.get<HeaderItem>());
+    }
+
+    return header;
+}
+
 FilterList parse_filter(const nlohmann::json& filters)
 {
     assume(filters.is_array());
@@ -152,6 +166,15 @@ std::string download_file(const std::string& url)
 #endif
 
     return filepath;
+}
+
+std::string stringify(const nlohmann::json& arg)
+{
+    if(arg.is_string()) return arg.get<std::string>();
+    else if(arg.is_null()) return std::string{};
+    else if(arg.is_primitive()) return arg.dump();
+
+    except("Cannot stringify type: '{}'", arg.type_name());
 }
 
 } // namespace tanto

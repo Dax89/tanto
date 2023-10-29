@@ -138,27 +138,108 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     return id;
 }
 
-[[nodiscard]] QTreeWidgetItem* qttree_add(QTreeWidget* tree, tanto::types::MultiValue& item)
+template<bool HasChildren = true>
+[[nodiscard]] QTreeWidgetItem* qttree_add(QTreeWidget* tree, tanto::types::MultiValue& item, const tanto::Header& header = {})
 {
     QTreeWidgetItem* treeitem = new QTreeWidgetItem();
     treeitem->setFlags(treeitem->flags() | Qt::ItemIsSelectable);
+
+    if constexpr(!HasChildren)
+        treeitem->setFlags(treeitem->flags() | Qt::ItemNeverHasChildren);
 
     QVariant v;
     v.setValue(item);
     treeitem->setData(0, Qt::UserRole, v);
 
+    nlohmann::json row = nlohmann::json::object();
+
     std::visit(tanto::utils::Overload{
              [&](tanto::types::Widget& a) {
-                  treeitem->setText(0, QString::fromStdString(a.text)); 
-                  if(a.prop<bool>("selected")) tree->setCurrentItem(treeitem);
+                  if(!header.empty()) {
+                      for(size_t i = 0; i < header.size(); i++) {
+                          if(!a.has_prop(header[i].id)) continue;
+                          nlohmann::json cell = a.prop<nlohmann::json>(header[i].id);
+                          treeitem->setText(i, QString::fromStdString(tanto::stringify(cell))); 
+                          row[header[i].id] = cell;
+                      }
+                  }
+                  else
+                    treeitem->setText(0, QString::fromStdString(a.text)); 
 
-                  for(tanto::types::MultiValue childitem : a.items)
-                      treeitem->addChild(qttree_add(tree, childitem));
+                  treeitem->setSelected(a.prop<bool>("selected"));
+
+                  if constexpr(HasChildren) {
+                    for(tanto::types::MultiValue childitem : a.items)
+                        treeitem->addChild(qttree_add(tree, childitem, header));
+                  }
              },
-             [&](std::string& a) { treeitem->setText(0, QString::fromStdString(a)); }
+             [&](std::string& a) {
+                if(header.empty()) treeitem->setText(0, QString::fromStdString(a));
+                else except("Invalid model item: '{}'", a);
+             }
     }, item);
 
+    if(!header.empty())
+        treeitem->setData(0, Qt::UserRole + 1, QString::fromStdString(row.dump()));
+
     return treeitem;
+}
+
+template<bool HasChildren = true>
+[[nodiscard]] QTreeWidget* qttree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent)
+{
+    QTreeWidget* w = new QTreeWidget();
+    w->setSelectionMode(QTreeWidget::SingleSelection);
+    w->setSelectionBehavior(QTreeWidget::SelectRows);
+    w->setRootIsDecorated(HasChildren);
+    w->setEnabled(arg.enabled);
+    w->setUniformRowHeights(true);
+
+    tanto::Header header = tanto::parse_header(arg);
+    w->setHeaderHidden(header.empty());
+
+    if(!header.empty())
+    {
+        QStringList qheader;
+
+        for(const tanto::HeaderItem& hitem : header)
+            qheader.push_back(QString::fromStdString(hitem.text));
+
+        w->setHeaderLabels(qheader);
+    }
+
+    for(tanto::types::MultiValue item : arg.items)
+        w->addTopLevelItem(qttree_add<HasChildren>(w, item, header));
+
+    apply_parent(w, qtcontainer_cast(parent), arg);
+    
+    if(arg.has_id())
+    {
+        auto itemselected = [self, header, w, arg](const QModelIndex& index) {
+            tanto::types::MultiValue v = qttreeindex_getmultivalue(w, index);
+            nlohmann::json row, detail = nlohmann::json::object();
+
+            if(!header.empty())
+                row = nlohmann::json::parse(index.siblingAtColumn(0).data(Qt::UserRole + 1).toString().toStdString());
+
+            if constexpr(HasChildren) {
+                if(index.parent().isValid()) {
+                    detail["parentid"] = qttreeindex_getid(w, index.parent());
+                    detail["parentindex"] = index.parent().row();
+                } 
+            }
+
+            self->selected(arg, index.row(), v, detail, row);
+        };
+
+        qtadd_action(w, QString{}, QKeySequence{Qt::Key_Return}, w, [w, itemselected]() {
+            if(w->currentItem()) itemselected(w->currentIndex());
+        });
+
+        QObject::connect(w, &QListWidget::doubleClicked, w, itemselected);
+    }
+
+    return w;
 }
 
 } // namespace
@@ -376,77 +457,8 @@ std::any BackendQtImpl::new_check(const tanto::types::Widget& arg, const std::an
     return w;
 }
 
-std::any BackendQtImpl::new_list(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QListWidget* w = new QListWidget();
-    w->setEnabled(arg.enabled);
-
-    for(auto item : arg.items)
-    {
-        std::visit(tanto::utils::Overload{
-                [&](tanto::types::Widget& a) {
-                    w->addItem(QString::fromStdString(a.text));
-                    if(a.prop<bool>("selected")) w->setCurrentRow(w->count() - 1);
-                },
-                [&](std::string& a) { w->addItem(QString::fromStdString(a)); }
-        }, item);
-    }
-
-    apply_parent(w, qtcontainer_cast(parent), arg);
-
-    if(arg.has_id())
-    {
-        auto itemselected = [&, arg](const QModelIndex& index) {
-            this->selected(arg, index.row(), arg.items[index.row()]);
-        };
-
-        qtadd_action(w, QString{}, QKeySequence{Qt::Key_Return}, w, [w, itemselected]() {
-            if(w->currentIndex().isValid()) itemselected(w->currentIndex());
-        });
-
-        QObject::connect(w, &QListWidget::doubleClicked, w, itemselected);
-    }
-
-    return w;
-}
-
-std::any BackendQtImpl::new_tree(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QTreeWidget* w = new QTreeWidget();
-    w->setSelectionMode(QTreeWidget::SingleSelection);
-    w->setSelectionBehavior(QTreeWidget::SelectRows);
-    w->setHeaderHidden(true);
-    w->setEnabled(arg.enabled);
-
-    apply_parent(w, qtcontainer_cast(parent), arg);
-
-    for(tanto::types::MultiValue item : arg.items)
-        w->addTopLevelItem(qttree_add(w, item));
-    
-    if(arg.has_id())
-    {
-        auto itemselected = [&, w, arg](const QModelIndex& index) {
-            tanto::types::MultiValue v = qttreeindex_getmultivalue(w, index);
-            nlohmann::json detail = nlohmann::json::object();
-
-            if(index.parent().isValid()) {
-                detail["parentid"] = qttreeindex_getid(w, index.parent());
-                detail["parentindex"] = index.parent().row();
-            } 
-
-            this->selected(arg, index.row(), v, detail);
-        };
-
-        qtadd_action(w, QString{}, QKeySequence{Qt::Key_Return}, w, [w, itemselected]() {
-            if(w->currentItem()) itemselected(w->currentIndex());
-        });
-
-        QObject::connect(w, &QListWidget::doubleClicked, w, itemselected);
-    }
-
-    return w;
-}
-
+std::any BackendQtImpl::new_list(const tanto::types::Widget& arg, const std::any& parent) { return qttree_new<false>(this, arg, parent); }
+std::any BackendQtImpl::new_tree(const tanto::types::Widget& arg, const std::any& parent) { return qttree_new(this, arg, parent); }
 std::any BackendQtImpl::new_tabs(const tanto::types::Widget& arg, const std::any& parent) { return apply_parent(new QTabWidget(), qtcontainer_cast(parent), arg); }
 std::any BackendQtImpl::new_row(const tanto::types::Widget& arg, const std::any& parent) { return apply_parent(new QHBoxLayout(), qtcontainer_cast(parent), arg); }
 std::any BackendQtImpl::new_column(const tanto::types::Widget& arg, const std::any& parent) { return apply_parent(new QVBoxLayout(), qtcontainer_cast(parent), arg); }

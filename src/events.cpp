@@ -21,7 +21,7 @@ void create_event(const std::string& type, const tanto::types::Widget& w, const 
 
 } // namespace
 
-void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value, const nlohmann::json& detail)
+void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value, const nlohmann::json& detail, const nlohmann::json& row)
 {
     nlohmann::json fulldetail = {
         {"index", index}
@@ -37,6 +37,9 @@ void Events::selected(const tanto::types::Widget& w, int index, tanto::types::Mu
             [&](tanto::types::Widget& a) { fulldetail["id"] = a.get_id(); },
             [&](std::string& a) { fulldetail["id"] = a; }
     }, value);
+
+    if(row.is_object())
+        fulldetail["row"] = row;
 
     create_event("selected", w, fulldetail);
     this->exit();
