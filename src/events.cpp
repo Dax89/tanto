@@ -21,12 +21,16 @@ Events::ProcessedModel Events::process_model()
 
 void Events::selected(const tanto::types::Widget& w, const nlohmann::json& row)
 {
+    if(m_ismodel) return;
+    
     this->create_event("selected", w, row);
     this->exit();
 }
 
 void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value)
 {
+    if(m_ismodel) return;
+
     nlohmann::json detail = {
         {"index", index}
     };
@@ -37,13 +41,13 @@ void Events::selected(const tanto::types::Widget& w, int index, tanto::types::Mu
     }, value);
 
     this->create_event("selected", w, detail);
-    this->exit();
 }
 
 void Events::changed(const tanto::types::Widget& w, const nlohmann::json& detail)
 {
+    if(m_ismodel) return;
+
     this->create_event("changed", w, detail);
-    this->exit();
 }
 
 void Events::clicked(const tanto::types::Widget& w, const nlohmann::json& detail)
@@ -54,6 +58,8 @@ void Events::clicked(const tanto::types::Widget& w, const nlohmann::json& detail
 
 void Events::double_clicked(const tanto::types::Widget& w, const nlohmann::json& detail)
 { 
+    if(m_ismodel) return;
+
     this->create_event("doubleclicked", w, detail);
     this->exit();
 }
