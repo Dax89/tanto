@@ -10,6 +10,7 @@ public:
     ~BackendGtkImpl();
     int run() const override;
     void exit() override;
+    nlohmann::json get_model_data(const tanto::types::Widget& arg, const std::any& w) override;
     void message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon) override;
     void input(const std::string& title, const std::string& text, const std::string& value, InputType it) override;
     void select_dir(const std::string& title, const std::string& startdir) override;

@@ -185,6 +185,39 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     }
 }
 
+[[nodiscard]] std::optional<TreeViewInfo> gtktree_gettreeviewinfo(GtkWidget* w, gint* index = nullptr)
+{
+    assume(GTK_IS_TREE_VIEW(w));
+
+    GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(w));
+    assume(treeselection);
+
+    GtkTreeModel* treemodel = nullptr;
+    GtkTreeIter iter;
+
+    if(gtk_tree_selection_get_selected(treeselection, &treemodel, &iter))
+    {
+        assume(treemodel);
+
+        GtkTreePath* treepath = gtk_tree_model_get_path(treemodel, &iter);
+        char* treepathstring = gtk_tree_path_to_string(treepath);
+        gint depth = gtk_tree_path_get_depth(treepath); assume(depth);
+        gint* indices = gtk_tree_path_get_indices(treepath); assume(indices);
+
+        const TreeViewInfo& tvi = g_treepath[GTK_TREE_STORE(treemodel)][treepathstring];
+        if(index) *index = indices[depth - 1];
+        g_free(treepathstring);
+        gtk_tree_path_free(treepath);
+
+        g_free(treepathstring);
+        gtk_tree_path_free(treepath);
+
+        return tvi;
+    }
+
+    return std::nullopt;
+}
+
 [[nodiscard]] GtkWidget* gtktree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true)
 {
     tanto::Header header = tanto::parse_header(arg);
@@ -237,29 +270,14 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
         g_signal_connect(w, "button-press-event", G_CALLBACK(+[](GtkWidget* sender, GdkEventButton* event, BackendGtkImpl* s) {
             if(event->button != 1 || event->type != GDK_2BUTTON_PRESS) return false;
 
-            GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(sender));
-            assume(treeselection);
+            gint index = 0;
+            auto tvi = gtktree_gettreeviewinfo(sender, &index);
 
-            GtkTreeModel* treemodel = nullptr;
-            GtkTreeIter iter;
-
-            if(gtk_tree_selection_get_selected(treeselection, &treemodel, &iter)) {
-                assume(treemodel);
-
-                GtkTreePath* treepath = gtk_tree_model_get_path(treemodel, &iter);
-                char* treepathstring = gtk_tree_path_to_string(treepath);
-                gint depth = gtk_tree_path_get_depth(treepath); assume(depth);
-                gint* indices = gtk_tree_path_get_indices(treepath); assume(indices);
-
-                const TreeViewInfo& tvi = g_treepath[GTK_TREE_STORE(treemodel)][treepathstring];
-                gint index = indices[depth - 1];
-                g_free(treepathstring);
-                gtk_tree_path_free(treepath);
-
-                if(g_widgets[sender].header.empty()) s->selected(g_widgets[sender].twidget, index, tvi.value);
-                else s->selected(g_widgets[sender].twidget, tvi.row);
+            if(tvi) {
+                if(g_widgets[sender].header.empty()) s->selected(g_widgets[sender].twidget, index, tvi->value);
+                else s->selected(g_widgets[sender].twidget, tvi->row);
             }
-
+            
             return true;
         }), self);
     }
@@ -285,6 +303,57 @@ void BackendGtkImpl::exit()
 { 
     g_object_unref(G_OBJECT(m_mainwindow));
     gtk_main_quit();
+}
+
+nlohmann::json BackendGtkImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w)
+{
+    GtkWidget* gtkw = std::any_cast<GtkWidget*>(w);
+
+    if(GTK_IS_SCROLLED_WINDOW(gtkw))
+    {
+        GtkWidget* gtkw2 = gtk_bin_get_child(GTK_BIN(gtkw));
+        assume(gtkw2);
+
+        if(GTK_IS_TREE_VIEW(gtkw2))
+        {
+            gint index = 0;
+            auto tvi = gtktree_gettreeviewinfo(gtkw2, &index);
+            if(!tvi) return nullptr;
+
+            if(arg.has_prop("header")) return tvi->row;
+            return tvi->value;
+        }
+    }
+    else if(GTK_IS_EVENT_BOX(gtkw))
+    {
+        GtkWidget* gtkw2 = gtk_bin_get_child(GTK_BIN(gtkw));
+        assume(gtkw2);
+
+        if(GTK_IS_IMAGE(gtkw2))
+        {
+            assume(g_images.count(gtkw2));
+            return g_images[gtkw2].filepath;
+        }
+    }
+    else if(GTK_IS_TEXT_VIEW(gtkw))
+    {
+        GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gtkw));
+        assume(buffer);
+
+        GtkTextIter start, end;
+        gtk_text_buffer_get_start_iter(buffer, &start);
+        gtk_text_buffer_get_end_iter(buffer, &end);
+
+        gchar* text = gtk_text_buffer_get_text(buffer, &start, &end, false);
+        std::string res = text;
+        g_free(text);
+        return res;
+    }
+    else if(GTK_IS_ENTRY(gtkw)) return gtk_entry_get_text(GTK_ENTRY(gtkw));
+    else if(GTK_IS_TOGGLE_BUTTON(gtkw)) return static_cast<bool>(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gtkw)));
+    else if(GTK_IS_SPIN_BUTTON(gtkw)) return gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(gtkw));
+
+    return nullptr;
 }
 
 void BackendGtkImpl::widget_processed(const tanto::types::Widget& arg, const std::any& widget)

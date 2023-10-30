@@ -273,6 +273,33 @@ std::any BackendQtImpl::new_window(const tanto::types::Window& arg)
 
 void BackendQtImpl::exit() { qApp->quit(); }
 
+nlohmann::json BackendQtImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w)
+{
+    if(w.type() == typeid(QTreeWidget*))
+    {
+        QTreeWidget* tree = std::any_cast<QTreeWidget*>(w);
+        QModelIndex index = tree->currentIndex();
+        if(!index.isValid()) return nullptr;
+
+        tanto::types::MultiValue v = qttreeindex_getmultivalue(tree, tree->currentIndex());
+
+        if(arg.has_prop("header"))
+            return nlohmann::json::parse(index.siblingAtColumn(0).data(Qt::UserRole + 1).toString().toStdString());
+
+        return std::visit(tanto::utils::Overload{
+                            [&](tanto::types::Widget& a) { return a.get_id(); },
+                            [&](std::string& a) { return a; }
+                          }, v);
+    }
+    else if(w.type() == typeid(QLineEdit*)) return std::any_cast<QLineEdit*>(w)->text().toStdString();
+    else if(w.type() == typeid(QPlainTextEdit*)) return std::any_cast<QPlainTextEdit*>(w)->toPlainText().toStdString();
+    else if(w.type() == typeid(QCheckBox*)) return std::any_cast<QCheckBox*>(w)->isChecked();
+    else if(w.type() == typeid(Picture*)) return std::any_cast<Picture*>(w)->filePath().toStdString();
+    else if(w.type() == typeid(QSpinBox*)) return std::any_cast<QSpinBox*>(w)->value();
+
+    return nullptr;
+}
+
 void BackendQtImpl::message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon)
 {
     QMessageBox::Icon mbicon = QMessageBox::NoIcon;

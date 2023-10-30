@@ -1,13 +1,6 @@
 #include "backend.h"
 #include "error.h"
 #include "utils.h"
-#include <unordered_map>
-
-namespace {
-
-std::unordered_map<std::string, std::any> m_model;
-
-} // namespace
 
 Backend::Backend(int& argc, char* argv[]): Events{} { (void)argc; (void)argv; }
 void Backend::processed() { }
@@ -16,6 +9,7 @@ std::string_view Backend::version() { unreachable; }
 
 void Backend::process(const tanto::types::Window& arg)
 {
+    m_ismodel = arg.model;
     std::any window = this->new_window(arg);
     if(arg.body) this->process(arg.body, window);
     this->processed();
@@ -68,7 +62,12 @@ std::any Backend::process(const tanto::types::Widget& arg, const std::any& paren
     }
 
     assume(widget.has_value());
-    if(arg.has_id()) m_model[arg.id] = widget;
+
+    if(m_ismodel && arg.has_id()) 
+    {
+        if(m_model.count(arg.id)) except("Duplicate id: '{}'", arg.id);
+        m_model[arg.id] = {arg, widget};
+    }
 
     this->widget_processed(arg, widget);
     return widget;

@@ -55,10 +55,10 @@ struct Widget
 struct Window {
     std::string type, title, font;
     int x{}, y{}, width{}, height{};
-    bool fixed{false};
+    bool fixed{false}, model{false};
     Widget body;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Window, type, title, font, x, y, width, height, fixed, body)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Window, type, title, font, x, y, width, height, fixed, model, body)
 };
 
 } // namespace tanto::types
