@@ -209,9 +209,6 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
         g_free(treepathstring);
         gtk_tree_path_free(treepath);
 
-        g_free(treepathstring);
-        gtk_tree_path_free(treepath);
-
         return tvi;
     }
 
