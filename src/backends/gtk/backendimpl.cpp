@@ -22,6 +22,7 @@ struct WidgetInfo
 {
     Backend* self;
     tanto::types::Widget twidget;
+    tanto::Header header;
 };
 
 struct TreeViewInfo
@@ -208,7 +209,7 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(w), !header.empty());
     gtk_tree_view_set_show_expanders(GTK_TREE_VIEW(w), haschildren);
 
-    g_widgets[w] = WidgetInfo{self, arg};
+    g_widgets[w] = WidgetInfo{self, arg, header}; // Create internal entry too
 
     if(!header.empty())
     {
@@ -255,7 +256,8 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
                 g_free(treepathstring);
                 gtk_tree_path_free(treepath);
 
-                s->selected(g_widgets[sender].twidget, index, tvi.value, tvi.row);
+                if(g_widgets[sender].header.empty()) s->selected(g_widgets[sender].twidget, index, tvi.value);
+                else s->selected(g_widgets[sender].twidget, tvi.row);
             }
 
             return true;
@@ -288,7 +290,7 @@ void BackendGtkImpl::exit()
 void BackendGtkImpl::widget_processed(const tanto::types::Widget& arg, const std::any& widget)
 {
     if(!arg.has_id()) return;
-    g_widgets[std::any_cast<GtkWidget*>(widget)] = {this, arg};
+    g_widgets[std::any_cast<GtkWidget*>(widget)] = {this, arg, {}};
 }
 
 void BackendGtkImpl::processed() { gtk_widget_show_all(m_mainwindow); }

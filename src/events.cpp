@@ -21,27 +21,24 @@ void create_event(const std::string& type, const tanto::types::Widget& w, const 
 
 } // namespace
 
-void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value, const nlohmann::json& detail, const nlohmann::json& row)
+void Events::selected(const tanto::types::Widget& w, const nlohmann::json& row)
 {
-    nlohmann::json fulldetail = {
+    create_event("selected", w, row);
+    this->exit();
+}
+
+void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value)
+{
+    nlohmann::json detail = {
         {"index", index}
     };
 
-    if(detail.is_object())
-    {
-        for(const auto& [k, v] : detail.items())
-            fulldetail[k] = v;
-    }
-
     std::visit(tanto::utils::Overload{
-            [&](tanto::types::Widget& a) { fulldetail["id"] = a.get_id(); },
-            [&](std::string& a) { fulldetail["id"] = a; }
+            [&](tanto::types::Widget& a) { detail["id"] = a.get_id(); },
+            [&](std::string& a) { detail["id"] = a; }
     }, value);
 
-    if(row.is_object())
-        fulldetail["row"] = row;
-
-    create_event("selected", w, fulldetail);
+    create_event("selected", w, detail);
     this->exit();
 }
 
