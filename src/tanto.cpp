@@ -1,6 +1,8 @@
 #include "tanto.h"
 #include <cstddef>
+#include <cctype>
 #include <filesystem>
+#include <string_view>
 #include <charconv>
 #include <fstream>
 #include "error.h"
@@ -27,6 +29,34 @@ size_t curl_write(void* ptr, size_t size, size_t nmemb, void* userdata)
 }
 #endif
 
+template<typename Function>
+void split_each(std::string_view s, char sep, Function f)
+{
+    size_t i = 0, start = 0;
+
+    for( ; i < s.size(); i++)
+    {
+        if(std::isspace(s[i])) continue;
+        if(s[i] != sep) continue;
+        if(i > start) f(s.substr(start, i - start));
+        start = i + 1;
+    }
+
+    while(start < s.size() && std::isspace(s[start])) start++;
+    if(start < s.size()) f(s.substr(start));
+}
+
+[[nodiscard]] std::vector<std::string> parse_ext(std::string_view filter)
+{
+    std::vector<std::string> ext;
+
+    split_each(filter, ';', [&](std::string_view s) {
+        ext.push_back(std::string{s});
+    });
+
+    return ext;
+}
+
 } // namespace
 
 namespace tanto {
@@ -47,16 +77,22 @@ Header parse_header(const types::Widget& w)
     return header;
 }
 
-FilterList parse_filter(const nlohmann::json& filters)
+FilterList parse_filter(const std::string& filter)
 {
-    assume(filters.is_array());
+    FilterList filters;
+    Filter f;
 
-    FilterList f;
+    split_each(filter, '|', [&](std::string_view s) {
+        if(!f.name.empty()) {
+            f.ext = parse_ext(s);
+            filters.push_back(f);
+            f = Filter{};
+        }
+        else 
+            f.name = std::string{s};
+    });
 
-    for(const auto& item : filters)
-        f.push_back(item.get<Filter>());
-
-    return f;
+    return filters;
 }
 
 std::optional<types::Window> parse(const nlohmann::json& jsonreq)

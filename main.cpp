@@ -75,25 +75,7 @@ using BackendPtr = std::unique_ptr<Backend>;
     except("Backend '{}' not found", name);
 }
 
-tanto::FilterList parse_filter(const docopt::value& v)
-{
-    std::string filter = v ? v.asString() : std::string{};
-    if(filter.empty()) return {};
-
-    tanto::FilterList res;
-
-    try {
-        nlohmann::json filterobj = nlohmann::json::parse(filter);
-        if(!filterobj.is_array()) except("Filter Error: expected 'array', got '{}'", filterobj.type_name());
-        res = tanto::parse_filter(filterobj);
-    }
-    catch(nlohmann::json::parse_error& e) { 
-        spdlog::critical("Filter Error: {}", e.what());
-        std::exit(1);
-    }
-
-    return res;
-}
+tanto::FilterList parse_filter(const docopt::value& v) { return tanto::parse_filter(v ? v.asString() : std::string{}); }
 
 std::string read_stdin()
 {

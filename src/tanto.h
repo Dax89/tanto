@@ -29,7 +29,7 @@ struct Filter {
 using FilterList = std::vector<Filter>;
 
 Header parse_header(const types::Widget& w);
-FilterList parse_filter(const nlohmann::json& filters);
+FilterList parse_filter(const std::string& filter);
 std::optional<types::Window> parse(const nlohmann::json& jsonreq);
 std::optional<std::pair<std::string, int>> parse_font(const std::string& font);
 std::string download_file(const std::string& url);
