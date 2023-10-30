@@ -304,17 +304,19 @@ void BackendGtkImpl::filechooser_show(GtkFileChooserAction action, const std::st
 
     if(!filter.empty())
     {
-        GtkFileFilter* filefilter = gtk_file_filter_new();
-
         for(const tanto::Filter& f : filter)
         {
+            GtkFileFilter* filefilter = gtk_file_filter_new();
             gtk_file_filter_set_name(filefilter, f.name.c_str());
 
             for(const std::string& ext : f.ext)
-                gtk_file_filter_add_pattern(filefilter, ext.c_str());
-        }
+            {
+                gtk_file_filter_add_pattern(filefilter, 
+                                            ext == "*" ? ext.c_str() : fmt::format("*.{}", ext).c_str());
+            }
 
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(w), filefilter);
+            gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(w), filefilter);
+        }
     }
 
     if(!startdir.empty())
