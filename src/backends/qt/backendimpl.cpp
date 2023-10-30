@@ -125,19 +125,6 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     return v.value<tanto::types::MultiValue>();
 }
 
-[[nodiscard]] std::string qttreeindex_getid(QTreeWidget* tree, QModelIndex index)
-{
-    tanto::types::MultiValue v = qttreeindex_getmultivalue(tree, index);
-    std::string id;
-
-    std::visit(tanto::utils::Overload{
-             [&](tanto::types::Widget& a) { id = a.get_id(); },
-             [&](std::string& a) { id = a; }
-    }, v);
-
-    return id;
-}
-
 [[nodiscard]] QTreeWidgetItem* qttree_add(QTreeWidget* tree, tanto::types::MultiValue& item, const tanto::Header& header = {}, bool haschildren = true)
 {
     QTreeWidgetItem* treeitem = new QTreeWidgetItem();
