@@ -7,6 +7,7 @@
 #include <QScrollArea>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QPlainTextEdit>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QCheckBox>
@@ -363,11 +364,21 @@ std::any BackendQtImpl::new_text(const tanto::types::Widget& arg, const std::any
 
 std::any BackendQtImpl::new_input(const tanto::types::Widget& arg, const std::any& parent)
 {
-    QLineEdit* w = new QLineEdit();
-    w->setEnabled(arg.enabled);
-    w->setText(QString::fromStdString(arg.text));
-    w->setPlaceholderText(QString::fromStdString(arg.prop<std::string>("placeholder")));
-    return apply_parent(w, qtcontainer_cast(parent), arg);
+    if(arg.prop<bool>("multiline"))
+    {
+        QPlainTextEdit* w = new QPlainTextEdit();
+        w->setEnabled(arg.enabled);
+        w->setPlainText(QString::fromStdString(arg.text));
+        return apply_parent(w, qtcontainer_cast(parent), arg);
+    }
+    else
+    {
+        QLineEdit* w = new QLineEdit();
+        w->setEnabled(arg.enabled);
+        w->setText(QString::fromStdString(arg.text));
+        w->setPlaceholderText(QString::fromStdString(arg.prop<std::string>("placeholder")));
+        return apply_parent(w, qtcontainer_cast(parent), arg);
+    }
 }
 
 std::any BackendQtImpl::new_number(const tanto::types::Widget& arg, const std::any& parent)

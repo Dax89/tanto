@@ -467,11 +467,24 @@ std::any BackendGtkImpl::new_text(const tanto::types::Widget& arg, const std::an
 
 std::any BackendGtkImpl::new_input(const tanto::types::Widget& arg, const std::any& parent)
 {
-    GtkWidget* w = gtk_entry_new();
-    if(arg.has_prop("placeholder")) gtk_entry_set_placeholder_text(GTK_ENTRY(w), arg.prop<std::string>("placeholder").c_str());
-    if(!arg.text.empty()) gtk_entry_set_text(GTK_ENTRY(w), arg.text.c_str());
-    setup_widget(w, arg, parent);
-    return w;
+    GtkWidget* w = nullptr;
+
+    if(arg.prop<bool>("multiline"))
+    {
+        w = gtk_text_view_new();
+
+        GtkTextBuffer* b = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w));
+        assume(b);
+        gtk_text_buffer_set_text(b, arg.text.c_str(), arg.text.size());
+    }
+    else
+    {
+        w = gtk_entry_new();
+        if(arg.has_prop("placeholder")) gtk_entry_set_placeholder_text(GTK_ENTRY(w), arg.prop<std::string>("placeholder").c_str());
+        if(!arg.text.empty()) gtk_entry_set_text(GTK_ENTRY(w), arg.text.c_str());
+    }
+
+    return setup_widget(w, arg, parent);
 }
 
 std::any BackendGtkImpl::new_number(const tanto::types::Widget& arg, const std::any& parent)
