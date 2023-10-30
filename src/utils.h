@@ -7,7 +7,10 @@
 namespace tanto::utils {
 
 template<class... Ts> struct Overload : Ts... { using Ts::operator()...; };
-template<class... Ts> Overload(Ts...) -> Overload<Ts...>; // line not needed in C++20...
+
+#if __cplusplus < 202002L
+template<class... Ts> Overload(Ts...) -> Overload<Ts...>; 
+#endif // __cplusplus >= 202002L
 
 template<typename> constexpr bool always_false_v = false;
 
