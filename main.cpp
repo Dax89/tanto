@@ -12,15 +12,15 @@
 
 #if defined(BACKEND_QT)
     #include "src/backends/qt/backendimpl.h"
-#endif // defined(BACKEND_QT)
+#endif
 
 #if defined(BACKEND_GTK)
     #include "src/backends/gtk/backendimpl.h"
-#endif // defined(BACKEND_GTK)
+#endif
 
 #if !defined(NDEBUG)
 extern "C" const char* __lsan_default_options() { return "suppressions=leak.supp:print_suppressions=0"; } // NOLINT
-#endif                                                                                                    // !defined(NDEBUG)
+#endif
 
 template <>
 struct fmt::formatter<docopt::value> : ostream_formatter {};
@@ -30,10 +30,10 @@ namespace {
 const std::unordered_map<std::string_view, std::string_view> BACKENDS {
 #if defined(BACKEND_QT)
     {"qt", BackendQtImpl::version()},
-#endif // defined(BACKEND_QT)
+#endif
 #if defined(BACKEND_GTK)
         {"gtk", BackendGtkImpl::version()},
-#endif // defined(BACKEND_GTK)
+#endif
 };
 
 std::string selected_backend{"gtk"};
