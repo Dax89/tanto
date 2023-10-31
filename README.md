@@ -1,5 +1,5 @@
-# Tantō
-
+Tantō
+========
 Tantō provides an easy way to create GUI-enabled scripts without installing external libraries/bindings.<br>
 It's communication protocol is based on JSON.
 
@@ -7,7 +7,9 @@ It's communication protocol is based on JSON.
 |:-------------------------:|:-------------------------:|
 |![Screenshot_31102023_183712](https://github.com/Dax89/tanto/assets/1503603/a55d832a-4bf3-4143-98f8-8e2907ef0be9)|![Screenshot_31102023_183659](https://github.com/Dax89/tanto/assets/1503603/d5ee36b5-bbd6-4f84-bd28-d07f847525c9)|
 
-# Supported Types
+Supported Types
+-----
+
 |Name                      | Type      | Description             |
 :-------------------------:|:---------:|:------------------------|
 |window                    | Container | Top level Window        |
@@ -25,7 +27,31 @@ It's communication protocol is based on JSON.
 |grid                      | Layout    | Aligns items in a grid MxN |
 |from                      | Layout    | Creates N-rows of text + widget pairs |
 
-# A Simple Example
+Command Line Arguments
+-----
+```
+Usage:
+        tanto stdin [--debug] [--backend=<name>]
+        tanto load <filename> [--debug] [--backend=<name>]
+        tanto message <title> <text> [(info|question|warning|error)] [--debug] [--backend=<name>]
+        tanto confirm <title> <text> [(info|question|warning|error)] [--debug] [--backend=<name>]
+        tanto input <title> [<text>] [<value>] [--debug] [--backend=<name>]
+        tanto password <title> [<text>] [--debug] [--backend=<name>]
+        tanto selectdir [<title>] [<dir>] [--debug] [--backend=<name>]
+        tanto loadfile [<title>] [<filter>] [<dir>] [--debug] [--backend=<name>]
+        tanto savefile [<title>] [<filter>] [<dir>] [--debug] [--backend=<name>]
+        tanto list
+
+    Options:
+        -h --help            Show this screen.
+        -v --version         Show version.
+        -d --debug           Debug mode.
+        -b --backend=<name>  Select backend.
+```
+
+
+A Simple Example
+-----
 ```python
 
 #! /bin/python3
