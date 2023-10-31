@@ -5,25 +5,30 @@
 #include <QImage>
 #include <string>
 
-class Picture: public QScrollArea
-{
+class Picture : public QScrollArea {
     Q_OBJECT
 
 public:
     explicit Picture(QWidget* parent = nullptr);
-    inline const QString& filePath() const { return m_filepath; }
-    inline void setImageSize(int w, int h) { m_width = w; m_height = h; }
-    void loadImage(const std::string& imagepath);
+    [[nodiscard]] inline const QString& file_path() const { return m_filepath; }
+    void load_image(const std::string& imagepath);
+
+    inline void set_image_size(int w, int h) {
+        m_width = w;
+        m_height = h;
+    }
+
+private:
+    void update_image();
+
+Q_SIGNALS:
+    void double_clicked();
+
+public:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 protected:
     void resizeEvent(QResizeEvent* e) override;
-
-Q_SIGNALS:
-    void doubleClicked();
-
-private:
-    void updateImage();
 
 private:
     QLabel* m_label;

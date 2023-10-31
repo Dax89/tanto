@@ -3,11 +3,9 @@
 #include "../../backend.h"
 #include <gtk/gtk.h>
 
-class BackendGtkImpl: public Backend
-{
+class BackendGtkImpl : public Backend {
 public:
-    BackendGtkImpl(int& argc, char* argv[]);
-    ~BackendGtkImpl();
+    BackendGtkImpl(int& argc, char** argv);
     int run() const override;
     void exit() override;
     nlohmann::json get_model_data(const tanto::types::Widget& arg, const std::any& w) override;

@@ -19,26 +19,27 @@
 #endif // defined(BACKEND_GTK)
 
 #if !defined(NDEBUG)
-extern "C" const char* __lsan_default_options() { return "suppressions=leak.supp:print_suppressions=0"; }
-#endif // !defined(NDEBUG)
+extern "C" const char* __lsan_default_options() { return "suppressions=leak.supp:print_suppressions=0"; } // NOLINT
+#endif                                                                                                    // !defined(NDEBUG)
 
-template<> struct fmt::formatter<docopt::value> : ostream_formatter { };
+template <>
+struct fmt::formatter<docopt::value> : ostream_formatter {};
 
 namespace {
 
-const std::unordered_map<std::string_view, std::string_view> BACKENDS{
+const std::unordered_map<std::string_view, std::string_view> BACKENDS {
 #if defined(BACKEND_QT)
     {"qt", BackendQtImpl::version()},
 #endif // defined(BACKEND_QT)
 #if defined(BACKEND_GTK)
-    {"gtk", BackendGtkImpl::version()},
+        {"gtk", BackendGtkImpl::version()},
 #endif // defined(BACKEND_GTK)
 };
 
 std::string selected_backend{"gtk"};
 
-const char USAGE[] =
-R"(Tanto
+const char* USAGE =
+    R"(Tanto
 
     Usage:
         tanto stdin [--debug] [--backend=<name>]
@@ -61,8 +62,7 @@ R"(Tanto
 
 using BackendPtr = std::unique_ptr<Backend>;
 
-[[nodiscard]] BackendPtr new_backend(const std::string& name, int argc, char* argv[])
-{
+[[nodiscard]] BackendPtr new_backend(const std::string& name, int argc, char** argv) {
 
 #if defined(BACKEND_QT)
     if(name == "qt") return std::make_unique<BackendQtImpl>(argc, argv);
@@ -77,12 +77,10 @@ using BackendPtr = std::unique_ptr<Backend>;
 
 tanto::FilterList parse_filter(const docopt::value& v) { return tanto::parse_filter(v ? v.asString() : std::string{}); }
 
-std::string read_stdin()
-{
+std::string read_stdin() {
     std::string input, line;
 
-    while(std::getline(std::cin, line))
-    {
+    while(std::getline(std::cin, line)) {
         if(!input.empty()) input += "\n";
         input += line;
     }
@@ -90,15 +88,12 @@ std::string read_stdin()
     return input;
 }
 
-int execute_mode(const BackendPtr& backend, docopt::Options& options)
-{
-    if(options["list"].asBool())
-    {
+int execute_mode(const BackendPtr& backend, docopt::Options& options) {
+    if(options["list"].asBool()) {
         for(const auto& [name, version] : BACKENDS)
             fmt::println("{}: {}", name, version);
     }
-    else if(options["message"].asBool() || options["confirm"].asBool())
-    {
+    else if(options["message"].asBool() || options["confirm"].asBool()) {
         Backend::MessageIcon icon = Backend::MessageIcon::NONE;
 
         if(options["info"].asBool()) icon = Backend::MessageIcon::INFO;
@@ -106,38 +101,34 @@ int execute_mode(const BackendPtr& backend, docopt::Options& options)
         else if(options["warning"].asBool()) icon = Backend::MessageIcon::WARNING;
         else if(options["error"].asBool()) icon = Backend::MessageIcon::ERROR;
 
-        backend->message(options["<title>"].asString(), 
-                         options["<text>"].asString(), 
+        backend->message(options["<title>"].asString(),
+                         options["<text>"].asString(),
                          options["confirm"].asBool() ? Backend::MessageType::CONFIRM : Backend::MessageType::MESSAGE,
                          icon);
     }
-    else if(options["input"].asBool() || options["password"].asBool())
-    {
+    else if(options["input"].asBool() || options["password"].asBool()) {
         std::string text = options["<text>"] ? options["<text>"].asString() : std::string{};
         std::string value = options["<value>"] ? options["<value>"].asString() : std::string{};
-        backend->input(options["<title>"].asString(), 
+        backend->input(options["<title>"].asString(),
                        text,
                        value,
                        options["password"].asBool() ? Backend::InputType::PASSWORD : Backend::InputType::NORMAL);
     }
-    else if(options["selectdir"].asBool())
-    {
+    else if(options["selectdir"].asBool()) {
         backend->select_dir(options["<title>"] ? options["<title>"].asString() : std::string{},
                             options["<dir>"] ? options["<dir>"].asString() : std::string{});
     }
-    else if(options["loadfile"].asBool())
-    {
+    else if(options["loadfile"].asBool()) {
         backend->load_file(options["<title>"] ? options["<title>"].asString() : std::string{},
                            parse_filter(options["<filter>"]),
                            options["<dir>"] ? options["<dir>"].asString() : std::string{});
     }
-    else if(options["savefile"].asBool())
-    {
+    else if(options["savefile"].asBool()) {
         backend->save_file(options["<title>"] ? options["<title>"].asString() : std::string{},
                            parse_filter(options["<filter>"]),
                            options["<dir>"] ? options["<dir>"].asString() : std::string{});
     }
-    else 
+    else
         unreachable;
 
     return 0;
@@ -145,11 +136,10 @@ int execute_mode(const BackendPtr& backend, docopt::Options& options)
 
 bool needs_json(docopt::Options& options) { return options["stdin"].asBool() || options["load"].asBool(); }
 
-int execute_json(const BackendPtr& backend, docopt::Options& options)
-{
+int execute_json(const BackendPtr& backend, docopt::Options& options) {
     nlohmann::json jsonreq;
 
-    try { 
+    try {
         if(options["stdin"].asBool())
             jsonreq = nlohmann::json::parse(read_stdin());
         else if(options["load"].asBool()) {
@@ -170,29 +160,25 @@ int execute_json(const BackendPtr& backend, docopt::Options& options)
 
 } // namespace
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char** argv) {
     docopt::Options options = docopt::docopt(USAGE,
                                              {argv + 1, argv + argc},
                                              true,         // show help if requested
                                              "Tanto 1.0"); // version string
 
-    if(options["--debug"].asBool())
-    {
-        for(auto const& arg : options)
+    if(options["--debug"].asBool()) {
+        for(const auto& arg : options)
             fmt::println("{} - {}", arg.first, arg.second);
     }
 
-    if(!options["--backend"])
-    {
+    if(!options["--backend"]) {
         char* envbackend = std::getenv("TANTO_BACKEND");
         if(envbackend) selected_backend = envbackend;
     }
     else
         selected_backend = options["--backend"].asString();
 
-    if(!BACKENDS.count(selected_backend))
-    {
+    if(!BACKENDS.count(selected_backend)) {
         fmt::println("ERROR: Unsupported backend '{}'", selected_backend);
         return 1;
     }

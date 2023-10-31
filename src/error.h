@@ -11,17 +11,17 @@
     #include <unistd.h>
     #include <cxxabi.h>
 
-    #define intrinsic_trap()        __builtin_trap()
+    #define intrinsic_trap() __builtin_trap()
     #define intrinsic_unreachable() __builtin_unreachable()
-    #define intrinsic_unlikely(x)   __builtin_expect(!!(x), 0)
+    #define intrinsic_unlikely(x) __builtin_expect(!!(x), 0)
 #elif defined(_MSC_VER) // MSVC
-    #define intrinsic_trap()        __debugbreak()
+    #define intrinsic_trap() __debugbreak()
     #define intrinsic_unreachable() __assume(false)
-    #define intrinsic_unlikely(x)   (!!(x))
+    #define intrinsic_unlikely(x) (!!(x))
 #else
-    #define intrinsic_trap()        std::abort()
+    #define intrinsic_trap() std::abort()
     #define intrinsic_unreachable() std::abort()
-    #define intrinsic_unlikely(x)   (!!(x))
+    #define intrinsic_unlikely(x) (!!(x))
 #endif
 
 namespace impl {
@@ -32,13 +32,13 @@ inline std::string parse_backtrace(const char* b) {
     std::string_view bt = b;
     std::string s;
 
-    size_t start = bt.find("(");
+    size_t start = bt.find('(');
     if(start == std::string_view::npos) return b;
 
-    size_t end = bt.find("+", ++start);
+    size_t end = bt.find('+', ++start);
     if(end == std::string_view::npos || end == start) {
         ++start; // Skip '+'
-        end = bt.find(")", end);
+        end = bt.find(')', end);
         if(end == std::string::npos) s.assign(b);
         else s.assign(b, start, end - start);
     }
@@ -72,9 +72,9 @@ inline void print_backtrace() {
     fmt::println("-------------------------------");
 }
 
-#else 
+#else
 
-inline void print_backtrace() { }
+inline void print_backtrace() {}
 
 #endif
 
@@ -99,28 +99,27 @@ inline void print_backtrace() { }
     impl::trap();
 #endif
 }
-    
+
 } // namespace impl
 
 #define print_backtrace impl::print_backtrace();
 
-#define assume(...) \
-    do { \
-        if(intrinsic_unlikely(!(__VA_ARGS__))) { \
+#define assume(...)                                                         \
+    do {                                                                    \
+        if(intrinsic_unlikely(!(__VA_ARGS__))) {                            \
             SPDLOG_CRITICAL("Assume condition failed: '{}'", #__VA_ARGS__); \
-            ::impl::trap(); \
-        } \
+            ::impl::trap();                                                 \
+        }                                                                   \
     } while(false)
 
-#define unreachable \
-    do { \
+#define unreachable                                   \
+    do {                                              \
         SPDLOG_CRITICAL("Unreachable code detected"); \
-        ::impl::unreachable(); \
+        ::impl::unreachable();                        \
     } while(false)
 
-#define except(...) \
-    do { \
+#define except(...)                   \
+    do {                              \
         SPDLOG_CRITICAL(__VA_ARGS__); \
-        ::impl::abort(); \
+        ::impl::abort();              \
     } while(false)
-

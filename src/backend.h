@@ -6,8 +6,7 @@
 #include "tanto.h"
 #include "events.h"
 
-class Backend: public Events
-{
+class Backend : public Events {
 public:
     enum class MessageType {
         MESSAGE = 0,
@@ -28,7 +27,7 @@ public:
     };
 
 public:
-    Backend(int& argc, char* argv[]);
+    Backend(int& argc, char** argv);
     virtual ~Backend() = default;
     virtual int run() const = 0;
     void process(const tanto::types::Window& arg);
@@ -61,7 +60,7 @@ private:
     std::any process_container(const std::any& layout, const tanto::types::Widget& arg);
     std::any process(const tanto::types::Widget& req, const std::any& parent);
 
-    template<typename Function>
+    template <typename Function>
     std::any process_layout(const tanto::types::Widget& arg, const std::any& parent, Function f) {
         if(arg.has_group()) {
             tanto::types::Widget w{"group"};

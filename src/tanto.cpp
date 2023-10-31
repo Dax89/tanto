@@ -15,27 +15,24 @@
     #include <urlmon.h>
 #endif
 
-namespace  {
+namespace {
 
 std::vector<char> g_tmpnamebuffer;
 
 #if defined(__unix__)
-size_t curl_write(void* ptr, size_t size, size_t nmemb, void* userdata)
-{
-    std::fstream* ofs = reinterpret_cast<std::fstream*>(userdata);
+size_t curl_write(void* ptr, size_t size, size_t nmemb, void* userdata) {
+    auto* ofs = reinterpret_cast<std::fstream*>(userdata);
     size_t nbytes = size * nmemb;
     ofs->write(reinterpret_cast<char*>(ptr), nbytes);
     return nbytes;
 }
 #endif
 
-template<typename Function>
-void split_each(std::string_view s, char sep, Function f)
-{
+template <typename Function>
+void split_each(std::string_view s, char sep, Function f) {
     size_t i = 0, start = 0;
 
-    for( ; i < s.size(); i++)
-    {
+    for(; i < s.size(); i++) {
         if(std::isspace(s[i])) continue;
         if(s[i] != sep) continue;
         if(i > start) f(s.substr(start, i - start));
@@ -46,12 +43,11 @@ void split_each(std::string_view s, char sep, Function f)
     if(start < s.size()) f(s.substr(start));
 }
 
-[[nodiscard]] std::vector<std::string> parse_ext(std::string_view filter)
-{
+[[nodiscard]] std::vector<std::string> parse_ext(std::string_view filter) {
     std::vector<std::string> ext;
 
     split_each(filter, ';', [&](std::string_view s) {
-        ext.push_back(std::string{s});
+        ext.emplace_back(s);
     });
 
     return ext;
@@ -63,13 +59,11 @@ namespace tanto {
 
 namespace fs = std::filesystem;
 
-Header parse_header(const types::Widget& w)
-{
+Header parse_header(const types::Widget& w) {
     Header header;
     nlohmann::json rawheader = w.prop<nlohmann::json::array_t>("header");
 
-    for(const auto& h : rawheader)
-    {
+    for(const auto& h : rawheader) {
         if(h.is_string()) header.emplace_back(HeaderItem{h, h});
         else header.push_back(h.get<HeaderItem>());
     }
@@ -77,8 +71,7 @@ Header parse_header(const types::Widget& w)
     return header;
 }
 
-FilterList parse_filter(const std::string& filter)
-{
+FilterList parse_filter(const std::string& filter) {
     FilterList filters;
     Filter f;
 
@@ -88,15 +81,14 @@ FilterList parse_filter(const std::string& filter)
             filters.push_back(f);
             f = Filter{};
         }
-        else 
+        else
             f.name = std::string{s};
     });
 
     return filters;
 }
 
-std::optional<types::Window> parse(const nlohmann::json& jsonreq)
-{
+std::optional<types::Window> parse(const nlohmann::json& jsonreq) {
     using namespace tanto::utils::string_literals;
 
     if(jsonreq.is_null()) return std::nullopt;
@@ -104,8 +96,7 @@ std::optional<types::Window> parse(const nlohmann::json& jsonreq)
 
     types::Window window = jsonreq.get<types::Window>();
 
-    switch(utils::fnv1a_32(window.type))
-    {
+    switch(utils::fnv1a_32(window.type)) {
         case "window"_fnv1a_32:
         case "popup"_fnv1a_32:
         case "tool"_fnv1a_32:
@@ -119,8 +110,7 @@ std::optional<types::Window> parse(const nlohmann::json& jsonreq)
     return window;
 }
 
-std::optional<std::pair<std::string, int>> parse_font(const std::string& font)
-{
+std::optional<std::pair<std::string, int>> parse_font(const std::string& font) {
     if(font.empty()) return std::nullopt;
 
     std::string name;
@@ -128,15 +118,12 @@ std::optional<std::pair<std::string, int>> parse_font(const std::string& font)
 
     auto it = font.begin();
 
-    if(*it == '\'')
-    {
+    if(*it == '\'') {
         bool complete = false;
         auto startit = ++it;
 
-        for(auto iit = startit; iit != font.end(); iit++)
-        {
-            if(*iit == '\'')
-            {
+        for(auto iit = startit; iit != font.end(); iit++) {
+            if(*iit == '\'') {
                 name = std::string{startit, iit};
                 it = ++iit;
                 complete = true;
@@ -146,14 +133,11 @@ std::optional<std::pair<std::string, int>> parse_font(const std::string& font)
 
         if(!complete) return std::nullopt;
     }
-    else
-    {
+    else {
         auto iit = it, endit = font.end();
 
-        for( ; iit != font.end(); iit++)
-        {
-            if(*iit == ' ')
-            {
+        for(; iit != font.end(); iit++) {
+            if(*iit == ' ') {
                 endit = iit;
                 break;
             }
@@ -165,8 +149,7 @@ std::optional<std::pair<std::string, int>> parse_font(const std::string& font)
 
     while(it != font.end() && std::isspace(*it)) ++it;
 
-    if(it != font.end())
-    {
+    if(it != font.end()) {
         int startidx = std::distance(font.begin(), it);
         auto res = std::from_chars(font.data() + startidx, font.data() + font.size(), size);
         if(res.ec != std::errc{} || res.ptr < (font.data() + font.size())) return std::nullopt;
@@ -175,8 +158,7 @@ std::optional<std::pair<std::string, int>> parse_font(const std::string& font)
     return std::make_optional(std::make_pair(name, size));
 }
 
-std::string download_file(const std::string& url)
-{
+std::string download_file(const std::string& url) {
     if(url.empty()) return std::string{};
     if(!utils::starts_with(url, "https://") && !tanto::utils::starts_with(url, "http://")) return url;
 
@@ -204,11 +186,10 @@ std::string download_file(const std::string& url)
     return filepath;
 }
 
-std::string stringify(const nlohmann::json& arg)
-{
+std::string stringify(const nlohmann::json& arg) {
     if(arg.is_string()) return arg.get<std::string>();
-    else if(arg.is_null()) return std::string{};
-    else if(arg.is_primitive()) return arg.dump();
+    if(arg.is_null()) return std::string{};
+    if(arg.is_primitive()) return arg.dump();
 
     except("Cannot stringify type: '{}'", arg.type_name());
 }

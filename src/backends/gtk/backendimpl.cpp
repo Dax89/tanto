@@ -6,27 +6,24 @@
 
 namespace {
 
-const std::string FORM_WIDGET    = "__tanto_form_widget__";
-const std::string SPACE_WIDGET   = "__tanto_space_widget__";
-constexpr guint DEFAULT_SPACING  = 5;
+const std::string FORM_WIDGET = "__tanto_form_widget__";
+const std::string SPACE_WIDGET = "__tanto_space_widget__";
+constexpr guint DEFAULT_SPACING = 5;
 
-struct ImageInfo
-{
+struct ImageInfo {
     tanto::types::Widget twidget;
     GdkPixbuf* pixbuf;
     GtkWidget* widget;
     std::string filepath;
 };
 
-struct WidgetInfo
-{
+struct WidgetInfo {
     Backend* self;
     tanto::types::Widget twidget;
     tanto::Header header;
 };
 
-struct TreeViewInfo
-{
+struct TreeViewInfo {
     nlohmann::json row;
     std::string value;
 };
@@ -38,15 +35,13 @@ std::unordered_map<GtkWidget*, WidgetInfo> g_widgets;
 std::unordered_map<GtkWidget*, ImageInfo> g_images;
 std::unordered_map<GtkWidget*, int> g_ngridrows;
 
-[[nodiscard]] GtkWidget* gtkcreate_label(const std::string& text, gfloat xalign = 0.0)
-{
+[[nodiscard]] GtkWidget* gtkcreate_label(const std::string& text, gfloat xalign = 0.0) {
     GtkWidget* w = gtk_label_new(text.c_str());
     gtk_label_set_xalign(GTK_LABEL(w), xalign);
     return w;
 }
 
-[[nodiscard]] GtkWidget* gtkcreate_grid()
-{
+[[nodiscard]] GtkWidget* gtkcreate_grid() {
     GtkWidget* w = gtk_grid_new();
     g_ngridrows[w] = 0;
     return w;
@@ -54,7 +49,7 @@ std::unordered_map<GtkWidget*, int> g_ngridrows;
 
 [[nodiscard]] GtkWidget* gtkcontainer_cast(const std::any& arg) {
     if(arg.type() == typeid(GtkWidget*)) return std::any_cast<GtkWidget*>(arg);
-    else except("Unsupported container type: '{}'", arg.type().name());
+    except("Unsupported container type: '{}'", arg.type().name());
 }
 
 void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget& w) {
@@ -62,26 +57,24 @@ void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget&
         GtkGrid* grid = GTK_GRID(parent);
 
         if(gtk_widget_get_name(parent) == FORM_WIDGET) {
-            gtk_grid_attach(grid, 
-                            gtkcreate_label(w.prop<std::string>("label").c_str(), 1.0),
+            gtk_grid_attach(grid,
+                            gtkcreate_label(w.prop<std::string>("label"), 1.0),
                             0, g_ngridrows[parent], 1, 1);
 
             gtk_grid_attach(grid, arg, 1, g_ngridrows[parent], 1, 1);
             ++g_ngridrows[parent];
         }
         else {
-
         }
     }
     else if(GTK_IS_NOTEBOOK(parent)) {
         GtkNotebook* notebook = GTK_NOTEBOOK(parent);
 
-        gtk_notebook_append_page(notebook, 
-                                 arg, 
-                                 gtkcreate_label(w.prop<std::string>("label").c_str()));
+        gtk_notebook_append_page(notebook,
+                                 arg,
+                                 gtkcreate_label(w.prop<std::string>("label")));
     }
-    else if(GTK_IS_BOX(parent))
-    {
+    else if(GTK_IS_BOX(parent)) {
         bool fill = std::string_view{gtk_widget_get_name(arg)} == SPACE_WIDGET ? true : w.fill;
         gtk_box_pack_start(GTK_BOX(parent), arg, fill, fill, 0);
     }
@@ -89,18 +82,16 @@ void apply_parent(GtkWidget* arg, GtkWidget* parent, const tanto::types::Widget&
     else except("Unsupported container type");
 }
 
-GtkWidget* setup_widget(GtkWidget* w, const tanto::types::Widget& arg, const std::any& parent)
-{
+GtkWidget* setup_widget(GtkWidget* w, const tanto::types::Widget& arg, const std::any& parent) {
     gtk_widget_set_size_request(w, arg.width ? arg.width : -1,
-                                   arg.height ? arg.height : -1);
+                                arg.height ? arg.height : -1);
 
     gtk_widget_set_sensitive(w, arg.enabled);
     apply_parent(w, gtkcontainer_cast(parent), arg);
     return w;
 }
 
-void destroy_image(GtkWidget* widget, gpointer)
-{
+void destroy_image(GtkWidget* widget, gpointer) {
     assume(g_images.count(widget));
     const ImageInfo& imageinfo = g_images[widget];
 
@@ -108,26 +99,22 @@ void destroy_image(GtkWidget* widget, gpointer)
     g_images.erase(widget);
 }
 
-gboolean resize_image(GtkWidget *widget, GdkRectangle *allocation, gpointer /* userdata */)
-{
+gboolean resize_image(GtkWidget* widget, GdkRectangle* allocation, gpointer /* userdata */) {
     assume(g_images.count(widget));
 
     const ImageInfo& imageinfo = g_images[widget];
     double ratio = gdk_pixbuf_get_height(imageinfo.pixbuf) / static_cast<double>(gdk_pixbuf_get_width(imageinfo.pixbuf));
     int w{}, h{};
 
-    if(imageinfo.twidget.width)
-    {
+    if(imageinfo.twidget.width) {
         w = imageinfo.twidget.width;
         h = std::ceil(imageinfo.twidget.width * ratio);
     }
-    else if(imageinfo.twidget.height)
-    {
+    else if(imageinfo.twidget.height) {
         h = imageinfo.twidget.height;
         w = std::ceil(imageinfo.twidget.height * ratio);
     }
-    else
-    { 
+    else {
         w = allocation->width;
         h = std::ceil(allocation->width * ratio);
     }
@@ -139,16 +126,13 @@ gboolean resize_image(GtkWidget *widget, GdkRectangle *allocation, gpointer /* u
     return false;
 }
 
-[[nodiscard]] std::string gtktree_createpath(const std::string& lhs, size_t rhs)
-{
+[[nodiscard]] std::string gtktree_createpath(const std::string& lhs, size_t rhs) {
     if(lhs.empty()) return std::to_string(rhs);
     return lhs + ":" + std::to_string(rhs);
 }
 
-void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::vector<std::string>& selections, const tanto::Header& header, GtkTreeIter* parent = nullptr, const std::string& path = {}, bool haschildren = true)
-{
-    for(size_t i = 0; i < items.size(); i++)
-    {
+void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::vector<std::string>& selections, const tanto::Header& header, GtkTreeIter* parent = nullptr, const std::string& path = {}, bool haschildren = true) {
+    for(size_t i = 0; i < items.size(); i++) {
         tanto::types::MultiValue& item = items[i];
 
         GtkTreeIter iter;
@@ -158,35 +142,34 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
         nlohmann::json row = nlohmann::json::object();
 
         std::visit(tanto::utils::Overload{
-                [&](tanto::types::Widget& a) {
-                    if(!header.empty()) {
-                        for(size_t j = 0; j < header.size(); j++) {
-                            if(!a.has_prop(header[j].id)) continue;
-                            nlohmann::json cell = a.prop<nlohmann::json>(header[j].id);
-                            gtk_tree_store_set(model, &iter, j, tanto::stringify(cell.dump()).c_str(), -1); 
-                            row[header[j].id] = cell;
-                        }
-                    }
-                    else
-                        gtk_tree_store_set(model, &iter, 0, a.text.c_str(), -1); 
-
-                    g_treepath[model][currpath].value = a.text;
-                    if(a.prop<bool>("selected")) selections.push_back(currpath);
-                    if(haschildren) gtktree_add(model, a.items, selections, header, &iter, currpath, haschildren);
-                },
-                [&](std::string& a) { 
-                    if(header.empty()) gtk_tree_store_set(model, &iter, 0, a.c_str(), -1);
-                    else except("Invalid model item: '{}'", a);
-                    g_treepath[model][currpath].value = a;
+                       [&](tanto::types::Widget& a) {
+            if(!header.empty()) {
+                for(size_t j = 0; j < header.size(); j++) {
+                    if(!a.has_prop(header[j].id)) continue;
+                    auto cell = a.prop<nlohmann::json>(header[j].id);
+                    gtk_tree_store_set(model, &iter, j, tanto::stringify(cell.dump()).c_str(), -1);
+                    row[header[j].id] = cell;
                 }
-        }, item);
+            }
+            else
+                gtk_tree_store_set(model, &iter, 0, a.text.c_str(), -1);
+
+            g_treepath[model][currpath].value = a.text;
+            if(a.prop<bool>("selected")) selections.push_back(currpath);
+            if(haschildren) gtktree_add(model, a.items, selections, header, &iter, currpath, haschildren);
+                       },
+                       [&](std::string& a) {
+            if(header.empty()) gtk_tree_store_set(model, &iter, 0, a.c_str(), -1);
+            else except("Invalid model item: '{}'", a);
+            g_treepath[model][currpath].value = a;
+        }},
+            item);
 
         if(!header.empty()) g_treepath[model][currpath].row = row;
     }
 }
 
-[[nodiscard]] std::optional<TreeViewInfo> gtktree_gettreeviewinfo(GtkWidget* w, gint* index = nullptr)
-{
+[[nodiscard]] std::optional<TreeViewInfo> gtktree_gettreeviewinfo(GtkWidget* w, gint* index = nullptr) {
     assume(GTK_IS_TREE_VIEW(w));
 
     GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(w));
@@ -195,14 +178,15 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     GtkTreeModel* treemodel = nullptr;
     GtkTreeIter iter;
 
-    if(gtk_tree_selection_get_selected(treeselection, &treemodel, &iter))
-    {
+    if(gtk_tree_selection_get_selected(treeselection, &treemodel, &iter)) {
         assume(treemodel);
 
         GtkTreePath* treepath = gtk_tree_model_get_path(treemodel, &iter);
         char* treepathstring = gtk_tree_path_to_string(treepath);
-        gint depth = gtk_tree_path_get_depth(treepath); assume(depth);
-        gint* indices = gtk_tree_path_get_indices(treepath); assume(indices);
+        gint depth = gtk_tree_path_get_depth(treepath);
+        assume(depth);
+        gint* indices = gtk_tree_path_get_indices(treepath);
+        assume(indices);
 
         const TreeViewInfo& tvi = g_treepath[GTK_TREE_STORE(treemodel)][treepathstring];
         if(index) *index = indices[depth - 1];
@@ -215,15 +199,13 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     return std::nullopt;
 }
 
-[[nodiscard]] GtkWidget* gtktree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true)
-{
+[[nodiscard]] GtkWidget* gtktree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true) {
     tanto::Header header = tanto::parse_header(arg);
     std::vector<std::string> selections;
 
     GtkTreeStore* model = nullptr;
 
-    if(!header.empty())
-    {
+    if(!header.empty()) {
         std::vector<GType> columns;
         columns.resize(header.size(), G_TYPE_STRING);
         model = gtk_tree_store_newv(header.size(), columns.data());
@@ -241,8 +223,7 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
 
     g_widgets[w] = WidgetInfo{self, arg, header}; // Create internal entry too
 
-    if(!header.empty())
-    {
+    if(!header.empty()) {
         for(const tanto::HeaderItem& hitem : header)
             gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, hitem.text.c_str(), renderer, "text", 0, nullptr);
     }
@@ -253,8 +234,7 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     gtk_container_add(GTK_CONTAINER(scroll), w);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-    if(!selections.empty())
-    {
+    if(!selections.empty()) {
         GtkTreePath* treepath = gtk_tree_path_new_from_string(selections.back().c_str());
         gtk_tree_view_expand_to_path(GTK_TREE_VIEW(w), treepath);
         gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(w), treepath, nullptr, true, 0.5, 0.0);
@@ -262,21 +242,21 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
         gtk_tree_path_free(treepath);
     }
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         g_signal_connect(w, "button-press-event", G_CALLBACK(+[](GtkWidget* sender, GdkEventButton* event, BackendGtkImpl* s) {
-            if(event->button != 1 || event->type != GDK_2BUTTON_PRESS) return false;
+                             if(event->button != 1 || event->type != GDK_2BUTTON_PRESS) return false;
 
-            gint index = 0;
-            auto tvi = gtktree_gettreeviewinfo(sender, &index);
+                             gint index = 0;
+                             auto tvi = gtktree_gettreeviewinfo(sender, &index);
 
-            if(tvi) {
-                if(g_widgets[sender].header.empty()) s->selected(g_widgets[sender].twidget, index, tvi->value);
-                else s->selected(g_widgets[sender].twidget, tvi->row);
-            }
-            
-            return true;
-        }), self);
+                             if(tvi) {
+                                 if(g_widgets[sender].header.empty()) s->selected(g_widgets[sender].twidget, index, tvi->value);
+                                 else s->selected(g_widgets[sender].twidget, tvi->row);
+                             }
+
+                             return true;
+                         }),
+                         self);
     }
 
     return setup_widget(scroll, arg, parent);
@@ -284,35 +264,33 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
 
 } // namespace
 
-BackendGtkImpl::BackendGtkImpl(int& argc, char* argv[]): Backend{argc, argv} { gtk_init(&argc, &argv); }
-BackendGtkImpl::~BackendGtkImpl() { }
+BackendGtkImpl::BackendGtkImpl(int& argc, char** argv): Backend{argc, argv} { gtk_init(&argc, &argv); }
 
-std::string_view BackendGtkImpl::version() { 
-    static const std::string VERSION = fmt::format("{}.{}.{}", GTK_MAJOR_VERSION, 
-                                                               GTK_MINOR_VERSION,
-                                                               GTK_MICRO_VERSION);
+std::string_view BackendGtkImpl::version() {
+    static const std::string VERSION = fmt::format("{}.{}.{}", GTK_MAJOR_VERSION,
+                                                   GTK_MINOR_VERSION,
+                                                   GTK_MICRO_VERSION);
     return VERSION;
 }
 
-int BackendGtkImpl::run() const { gtk_main(); return 0; }
+int BackendGtkImpl::run() const {
+    gtk_main();
+    return 0;
+}
 
-void BackendGtkImpl::exit()
-{ 
+void BackendGtkImpl::exit() {
     g_object_unref(G_OBJECT(m_mainwindow));
     gtk_main_quit();
 }
 
-nlohmann::json BackendGtkImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w)
-{
-    GtkWidget* gtkw = std::any_cast<GtkWidget*>(w);
+nlohmann::json BackendGtkImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w) {
+    auto* gtkw = std::any_cast<GtkWidget*>(w);
 
-    if(GTK_IS_SCROLLED_WINDOW(gtkw))
-    {
+    if(GTK_IS_SCROLLED_WINDOW(gtkw)) {
         GtkWidget* gtkw2 = gtk_bin_get_child(GTK_BIN(gtkw));
         assume(gtkw2);
 
-        if(GTK_IS_TREE_VIEW(gtkw2))
-        {
+        if(GTK_IS_TREE_VIEW(gtkw2)) {
             gint index = 0;
             auto tvi = gtktree_gettreeviewinfo(gtkw2, &index);
             if(!tvi) return nullptr;
@@ -321,19 +299,16 @@ nlohmann::json BackendGtkImpl::get_model_data(const tanto::types::Widget& arg, c
             return tvi->value;
         }
     }
-    else if(GTK_IS_EVENT_BOX(gtkw))
-    {
+    else if(GTK_IS_EVENT_BOX(gtkw)) {
         GtkWidget* gtkw2 = gtk_bin_get_child(GTK_BIN(gtkw));
         assume(gtkw2);
 
-        if(GTK_IS_IMAGE(gtkw2))
-        {
+        if(GTK_IS_IMAGE(gtkw2)) {
             assume(g_images.count(gtkw2));
             return g_images[gtkw2].filepath;
         }
     }
-    else if(GTK_IS_TEXT_VIEW(gtkw))
-    {
+    else if(GTK_IS_TEXT_VIEW(gtkw)) {
         GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gtkw));
         assume(buffer);
 
@@ -353,31 +328,26 @@ nlohmann::json BackendGtkImpl::get_model_data(const tanto::types::Widget& arg, c
     return nullptr;
 }
 
-void BackendGtkImpl::widget_processed(const tanto::types::Widget& arg, const std::any& widget)
-{
+void BackendGtkImpl::widget_processed(const tanto::types::Widget& arg, const std::any& widget) {
     if(!arg.has_id()) return;
     g_widgets[std::any_cast<GtkWidget*>(widget)] = {this, arg, {}};
 }
 
 void BackendGtkImpl::processed() { gtk_widget_show_all(m_mainwindow); }
 
-void BackendGtkImpl::filechooser_show(GtkFileChooserAction action, const std::string& title, const tanto::FilterList& filter, const std::string& startdir)
-{
-    GtkWidget* w = gtk_file_chooser_dialog_new(title.c_str(), nullptr, action, 
+void BackendGtkImpl::filechooser_show(GtkFileChooserAction action, const std::string& title, const tanto::FilterList& filter, const std::string& startdir) {
+    GtkWidget* w = gtk_file_chooser_dialog_new(title.c_str(), nullptr, action,
                                                "_Open", GTK_RESPONSE_ACCEPT,
                                                "_Cancel", GTK_RESPONSE_CANCEL,
                                                nullptr);
 
-    if(!filter.empty())
-    {
-        for(const tanto::Filter& f : filter)
-        {
+    if(!filter.empty()) {
+        for(const tanto::Filter& f : filter) {
             GtkFileFilter* filefilter = gtk_file_filter_new();
             gtk_file_filter_set_name(filefilter, f.name.c_str());
 
-            for(const std::string& ext : f.ext)
-            {
-                gtk_file_filter_add_pattern(filefilter, 
+            for(const std::string& ext : f.ext) {
+                gtk_file_filter_add_pattern(filefilter,
                                             ext == "*" ? ext.c_str() : fmt::format("*.{}", ext).c_str());
             }
 
@@ -390,16 +360,14 @@ void BackendGtkImpl::filechooser_show(GtkFileChooserAction action, const std::st
 
     gint res = gtk_dialog_run(GTK_DIALOG(w));
 
-    if(res == GTK_RESPONSE_ACCEPT)
-    {
+    if(res == GTK_RESPONSE_ACCEPT) {
         char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(w));
         this->send_event(filename);
         g_free(filename);
     }
 }
 
-std::any BackendGtkImpl::new_window(const tanto::types::Window& arg)
-{
+std::any BackendGtkImpl::new_window(const tanto::types::Window& arg) {
     m_mainwindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     g_signal_connect(G_OBJECT(m_mainwindow), "destroy", gtk_main_quit, nullptr);
 
@@ -416,29 +384,25 @@ std::any BackendGtkImpl::new_window(const tanto::types::Window& arg)
     return m_mainwindow;
 }
 
-void BackendGtkImpl::message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon)
-{
+void BackendGtkImpl::message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon) {
     std::string_view mbicon;
 
-    switch(icon)
-    {
-        case MessageIcon::INFO:     mbicon = "dialog-information"; break;
-        case MessageIcon::WARNING:  mbicon = "dialog-warning"; break;
+    switch(icon) {
+        case MessageIcon::INFO: mbicon = "dialog-information"; break;
+        case MessageIcon::WARNING: mbicon = "dialog-warning"; break;
         case MessageIcon::QUESTION: mbicon = "dialog-question"; break;
-        case MessageIcon::ERROR:    mbicon = "dialog-error"; break;
+        case MessageIcon::ERROR: mbicon = "dialog-error"; break;
         default: break;
     }
 
     GtkWidget* w = nullptr;
 
-    if(mt == MessageType::MESSAGE)
-    {
+    if(mt == MessageType::MESSAGE) {
         w = gtk_dialog_new_with_buttons(title.c_str(), nullptr, GTK_DIALOG_MODAL,
                                         "_OK", GTK_RESPONSE_OK,
                                         nullptr);
     }
-    else if(mt == MessageType::CONFIRM)
-    {
+    else if(mt == MessageType::CONFIRM) {
         w = gtk_dialog_new_with_buttons(title.c_str(), nullptr, GTK_DIALOG_MODAL,
                                         "_OK", GTK_RESPONSE_OK,
                                         "_Cancel", GTK_RESPONSE_CANCEL,
@@ -455,8 +419,7 @@ void BackendGtkImpl::message(const std::string& title, const std::string& text, 
 
     GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, DEFAULT_SPACING);
 
-    if(!mbicon.empty())
-    {
+    if(!mbicon.empty()) {
         gtk_container_add(GTK_CONTAINER(box), gtk_image_new_from_icon_name(mbicon.data(),
                                                                            GTK_ICON_SIZE_DND));
     }
@@ -467,8 +430,7 @@ void BackendGtkImpl::message(const std::string& title, const std::string& text, 
 
     gint response = gtk_dialog_run(GTK_DIALOG(w));
 
-    switch(response)
-    {
+    switch(response) {
         case GTK_RESPONSE_OK: this->send_event("ok"); break;
         case GTK_RESPONSE_CANCEL: this->send_event("cancel"); break;
         default: unreachable;
@@ -477,8 +439,7 @@ void BackendGtkImpl::message(const std::string& title, const std::string& text, 
     gtk_widget_destroy(w);
 }
 
-void BackendGtkImpl::input(const std::string& title, const std::string& text, const std::string& value, InputType it)
-{
+void BackendGtkImpl::input(const std::string& title, const std::string& text, const std::string& value, InputType it) {
     GtkWidget* w = gtk_dialog_new_with_buttons(title.c_str(), nullptr, GTK_DIALOG_MODAL,
                                                "_OK", GTK_RESPONSE_OK,
                                                "_Cancel", GTK_RESPONSE_CANCEL,
@@ -487,7 +448,7 @@ void BackendGtkImpl::input(const std::string& title, const std::string& text, co
     GtkWidget* vbox = gtk_dialog_get_content_area(GTK_DIALOG(w));
     gtk_box_set_spacing(GTK_BOX(vbox), DEFAULT_SPACING);
 
-    gtk_box_pack_start(GTK_BOX(vbox), gtkcreate_label(text.c_str()), false, false, 0); 
+    gtk_box_pack_start(GTK_BOX(vbox), gtkcreate_label(text), false, false, 0);
 
     GtkWidget* entry = gtk_entry_new();
     gtk_entry_set_activates_default(GTK_ENTRY(entry), true);
@@ -506,23 +467,19 @@ void BackendGtkImpl::input(const std::string& title, const std::string& text, co
     gtk_widget_destroy(w);
 }
 
-void BackendGtkImpl::load_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir)
-{
+void BackendGtkImpl::load_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir) {
     this->filechooser_show(GTK_FILE_CHOOSER_ACTION_OPEN, title, filter, startdir);
 }
 
-void BackendGtkImpl::save_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir)
-{
+void BackendGtkImpl::save_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir) {
     this->filechooser_show(GTK_FILE_CHOOSER_ACTION_SAVE, title, filter, startdir);
 }
 
-void BackendGtkImpl::select_dir(const std::string& title, const std::string& startdir)
-{
+void BackendGtkImpl::select_dir(const std::string& title, const std::string& startdir) {
     this->filechooser_show(GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, title, {}, startdir);
 }
 
-std::any BackendGtkImpl::new_space(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendGtkImpl::new_space(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = gtk_label_new(nullptr);
     gtk_widget_set_name(w, SPACE_WIDGET.c_str());
     setup_widget(w, arg, parent);
@@ -531,20 +488,17 @@ std::any BackendGtkImpl::new_space(const tanto::types::Widget& arg, const std::a
 
 std::any BackendGtkImpl::new_text(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtkcreate_label(arg.text), arg, parent); }
 
-std::any BackendGtkImpl::new_input(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendGtkImpl::new_input(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = nullptr;
 
-    if(arg.prop<bool>("multiline"))
-    {
+    if(arg.prop<bool>("multiline")) {
         w = gtk_text_view_new();
 
         GtkTextBuffer* b = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w));
         assume(b);
         gtk_text_buffer_set_text(b, arg.text.c_str(), arg.text.size());
     }
-    else
-    {
+    else {
         w = gtk_entry_new();
         if(arg.has_prop("placeholder")) gtk_entry_set_placeholder_text(GTK_ENTRY(w), arg.prop<std::string>("placeholder").c_str());
         if(!arg.text.empty()) gtk_entry_set_text(GTK_ENTRY(w), arg.text.c_str());
@@ -553,8 +507,7 @@ std::any BackendGtkImpl::new_input(const tanto::types::Widget& arg, const std::a
     return setup_widget(w, arg, parent);
 }
 
-std::any BackendGtkImpl::new_number(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendGtkImpl::new_number(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = gtk_spin_button_new_with_range(arg.prop<int>("min", tanto::NUMBER_MIN),
                                                   arg.prop<int>("max", tanto::NUMBER_MAX),
                                                   arg.prop<int>("step", 1));
@@ -564,8 +517,7 @@ std::any BackendGtkImpl::new_number(const tanto::types::Widget& arg, const std::
     return w;
 }
 
-std::any BackendGtkImpl::new_image(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendGtkImpl::new_image(const tanto::types::Widget& arg, const std::any& parent) {
     std::string filepath = tanto::download_file(arg.text);
     GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(filepath.c_str(), nullptr);
     assume(pixbuf);
@@ -579,45 +531,42 @@ std::any BackendGtkImpl::new_image(const tanto::types::Widget& arg, const std::a
     g_signal_connect(w, "size-allocate", G_CALLBACK(resize_image), nullptr);
     g_signal_connect(w, "destroy", G_CALLBACK(destroy_image), nullptr);
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         g_signal_connect(eventbox, "button-press-event", G_CALLBACK(+[](GtkWidget* sender, GdkEventButton* event, BackendGtkImpl* self) {
-            if(event->button != 1) return;
+                             if(event->button != 1) return;
 
-            GtkWidget* image = gtk_bin_get_child(GTK_BIN(sender));
-            if(event->type == GDK_2BUTTON_PRESS) self->double_clicked(g_widgets.at(sender).twidget, g_images.at(image).filepath);
-
-        }), this);
+                             GtkWidget* image = gtk_bin_get_child(GTK_BIN(sender));
+                             if(event->type == GDK_2BUTTON_PRESS) self->double_clicked(g_widgets.at(sender).twidget, g_images.at(image).filepath);
+                         }),
+                         this);
     }
 
     setup_widget(eventbox, arg, parent);
     return eventbox;
 }
 
-std::any BackendGtkImpl::new_button(const tanto::types::Widget& arg, const std::any& parent)
-{ 
+std::any BackendGtkImpl::new_button(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = gtk_button_new_with_label(arg.text.c_str());
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         g_signal_connect(w, "clicked", G_CALLBACK(+[](GtkWidget* sender, BackendGtkImpl* self) {
-            self->clicked(g_widgets.at(sender).twidget);
-        }), this);
+                             self->clicked(g_widgets.at(sender).twidget);
+                         }),
+                         this);
     }
 
     return setup_widget(w, arg, parent);
 }
 
-std::any BackendGtkImpl::new_check(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendGtkImpl::new_check(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = gtk_check_button_new_with_label(arg.text.c_str());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), arg.prop<bool>("checked"));
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         g_signal_connect(w, "clicked", G_CALLBACK(+[](GtkButton* sender, BackendGtkImpl* self) {
-            self->changed(g_widgets.at(GTK_WIDGET(sender)).twidget, static_cast<bool>(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sender))));
-        }), this);
+                             self->changed(g_widgets.at(GTK_WIDGET(sender)).twidget, static_cast<bool>(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sender))));
+                         }),
+                         this);
     }
 
     return setup_widget(w, arg, parent);
@@ -630,8 +579,7 @@ std::any BackendGtkImpl::new_row(const tanto::types::Widget& arg, const std::any
 std::any BackendGtkImpl::new_column(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtk_box_new(GTK_ORIENTATION_VERTICAL, arg.prop<gint>("spacing", DEFAULT_SPACING)), arg, parent); }
 std::any BackendGtkImpl::new_grid(const tanto::types::Widget& arg, const std::any& parent) { return setup_widget(gtkcreate_grid(), arg, parent); }
 
-std::any BackendGtkImpl::new_form(const tanto::types::Widget& arg, const std::any& parent)
-{ 
+std::any BackendGtkImpl::new_form(const tanto::types::Widget& arg, const std::any& parent) {
     GtkWidget* w = gtkcreate_grid();
     gtk_grid_set_column_spacing(GTK_GRID(w), DEFAULT_SPACING);
     gtk_widget_set_name(w, FORM_WIDGET.c_str());

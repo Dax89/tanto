@@ -6,8 +6,7 @@
 #include <nlohmann/json.hpp>
 #include "types.h"
 
-class Events
-{
+class Events {
 private:
     using ProcessedModel = std::unordered_map<std::string, nlohmann::json>;
     using Model = std::unordered_map<std::string, std::pair<tanto::types::Widget, std::any>>;

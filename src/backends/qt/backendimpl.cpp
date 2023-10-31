@@ -35,80 +35,75 @@ const QString CENTRAL_WIDGET = "__tanto_central_widget__";
 
 [[nodiscard]] QObject* qtcontainer_cast(const std::any& arg) {
     if(arg.type() == typeid(QWidget*)) return std::any_cast<QWidget*>(arg);
-    else if(arg.type() == typeid(MainWindow*)) return std::any_cast<MainWindow*>(arg);
-    else if(arg.type() == typeid(QVBoxLayout*)) return std::any_cast<QVBoxLayout*>(arg);
-    else if(arg.type() == typeid(QHBoxLayout*)) return std::any_cast<QHBoxLayout*>(arg);
-    else if(arg.type() == typeid(QGridLayout*)) return std::any_cast<QGridLayout*>(arg);
-    else if(arg.type() == typeid(QFormLayout*)) return std::any_cast<QFormLayout*>(arg);
-    else if(arg.type() == typeid(QTabWidget*)) return std::any_cast<QTabWidget*>(arg);
-    else if(arg.type() == typeid(QGroupBox*)) return std::any_cast<QGroupBox*>(arg);
+    if(arg.type() == typeid(MainWindow*)) return std::any_cast<MainWindow*>(arg);
+    if(arg.type() == typeid(QVBoxLayout*)) return std::any_cast<QVBoxLayout*>(arg);
+    if(arg.type() == typeid(QHBoxLayout*)) return std::any_cast<QHBoxLayout*>(arg);
+    if(arg.type() == typeid(QGridLayout*)) return std::any_cast<QGridLayout*>(arg);
+    if(arg.type() == typeid(QFormLayout*)) return std::any_cast<QFormLayout*>(arg);
+    if(arg.type() == typeid(QTabWidget*)) return std::any_cast<QTabWidget*>(arg);
+    if(arg.type() == typeid(QGroupBox*)) return std::any_cast<QGroupBox*>(arg);
 
     except("Unsupported container type: '{}'", arg.type().name());
 }
 
-template<typename T>
+template <typename T>
 T* apply_parent(T* arg, QObject* parent, const tanto::types::Widget& w) {
     if constexpr(std::is_base_of_v<QLayout, T>) {
-        if(MainWindow* mw = qobject_cast<MainWindow*>(parent); mw) mw->setLayout(arg);
-        else if(QVBoxLayout* vbox = qobject_cast<QVBoxLayout*>(parent); vbox) vbox->addLayout(arg, w.fill);
-        else if(QHBoxLayout* hbox = qobject_cast<QHBoxLayout*>(parent); hbox) hbox->addLayout(arg, w.fill);
-        else if(QGridLayout* grid = qobject_cast<QGridLayout*>(parent); grid) grid->addLayout(arg, w.prop<int>("row"), w.prop<int>("col"), w.prop<int>("rowspan", 1), w.prop<int>("colspan", 1));
-        else if(QFormLayout* form = qobject_cast<QFormLayout*>(parent); form) form->addRow(QString::fromStdString(w.prop<std::string>("label")), arg);
-        else if(QTabWidget* tabs = qobject_cast<QTabWidget*>(parent); tabs) {
-            QWidget* c = new QWidget(); // Create container for this layout
+        if(auto* mw = qobject_cast<MainWindow*>(parent); mw) mw->setLayout(arg);
+        else if(auto* vbox = qobject_cast<QVBoxLayout*>(parent); vbox) vbox->addLayout(arg, w.fill);
+        else if(auto* hbox = qobject_cast<QHBoxLayout*>(parent); hbox) hbox->addLayout(arg, w.fill);
+        else if(auto* grid = qobject_cast<QGridLayout*>(parent); grid) grid->addLayout(arg, w.prop<int>("row"), w.prop<int>("col"), w.prop<int>("rowspan", 1), w.prop<int>("colspan", 1));
+        else if(auto* form = qobject_cast<QFormLayout*>(parent); form) form->addRow(QString::fromStdString(w.prop<std::string>("label")), arg);
+        else if(auto* tabs = qobject_cast<QTabWidget*>(parent); tabs) {
+            auto* c = new QWidget(); // Create container for this layout
             c->setLayout(arg);
             tabs->addTab(c, QString::fromStdString(w.prop<std::string>("label")));
         }
-        else if(QWidget* widget = qobject_cast<QWidget*>(parent); widget) widget->setLayout(arg);
+        else if(auto* widget = qobject_cast<QWidget*>(parent); widget) widget->setLayout(arg);
         else unreachable;
     }
     else {
         if(QWidget* widget = qobject_cast<QWidget*>(parent); widget && widget->objectName() == CENTRAL_WIDGET)
             parent = widget->parent();
 
-        if(MainWindow* mw = qobject_cast<MainWindow*>(parent); mw) {
+        if(auto* mw = qobject_cast<MainWindow*>(parent); mw) {
             QWidget* oldwidget = mw->centralWidget();
             mw->setCentralWidget(arg);
             if(oldwidget) oldwidget->deleteLater();
         }
-        else if(QVBoxLayout* vbox = qobject_cast<QVBoxLayout*>(parent); vbox) vbox->addWidget(arg, w.fill);
-        else if(QHBoxLayout* hbox = qobject_cast<QHBoxLayout*>(parent); hbox) hbox->addWidget(arg, w.fill);
-        else if(QGridLayout* grid = qobject_cast<QGridLayout*>(parent); grid) grid->addWidget(arg, w.prop<int>("row"), w.prop<int>("col"), w.prop<int>("rowspan", 1), w.prop<int>("colspan", 1));
-        else if(QFormLayout* form = qobject_cast<QFormLayout*>(parent); form) form->addRow(QString::fromStdString(w.prop<std::string>("label")), arg);
-        else if(QTabWidget* tabs = qobject_cast<QTabWidget*>(parent); tabs) tabs->addTab(arg, QString::fromStdString(w.prop<std::string>("label")));
+        else if(auto* vbox = qobject_cast<QVBoxLayout*>(parent); vbox) vbox->addWidget(arg, w.fill);
+        else if(auto* hbox = qobject_cast<QHBoxLayout*>(parent); hbox) hbox->addWidget(arg, w.fill);
+        else if(auto* grid = qobject_cast<QGridLayout*>(parent); grid) grid->addWidget(arg, w.prop<int>("row"), w.prop<int>("col"), w.prop<int>("rowspan", 1), w.prop<int>("colspan", 1));
+        else if(auto* form = qobject_cast<QFormLayout*>(parent); form) form->addRow(QString::fromStdString(w.prop<std::string>("label")), arg);
+        else if(auto* tabs = qobject_cast<QTabWidget*>(parent); tabs) tabs->addTab(arg, QString::fromStdString(w.prop<std::string>("label")));
         else unreachable;
     }
 
     return arg;
 }
 
-QString convert_filter(const tanto::FilterList& filters)
-{
+QString convert_filter(const tanto::FilterList& filters) {
     QStringList res;
 
-    for(const tanto::Filter& f : filters)
-    {
+    for(const tanto::Filter& f : filters) {
         QStringList ext;
 
-        for(const std::string& e : f.ext)
-        {
+        for(const std::string& e : f.ext) {
             if(e != "*")
                 ext.push_back(QString::fromStdString(e).prepend("*."));
             else
                 ext.push_back("*");
         }
 
-        res.push_back(QString("%1 (%2)").arg(QString::fromStdString(f.name))
-                                        .arg(ext.join(' ')));
+        res.push_back(QString("%1 (%2)").arg(QString::fromStdString(f.name)).arg(ext.join(' ')));
     }
 
     return res.join(";;");
 }
 
-template<typename Slot>
-QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& shortcut, QObject* object, Slot slot)
-{
-    QAction* action = new QAction(text, w);
+template <typename Slot>
+QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& shortcut, QObject* object, Slot slot) {
+    auto* action = new QAction(text, w);
     action->setShortcut(shortcut);
     w->addAction(action);
 
@@ -116,8 +111,7 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     return action;
 }
 
-[[nodiscard]] tanto::types::MultiValue qttreeindex_getmultivalue(QTreeWidget* tree, QModelIndex index)
-{
+[[nodiscard]] tanto::types::MultiValue qttreeindex_getmultivalue(QTreeWidget* tree, QModelIndex index) {
     QTreeWidgetItem* item = tree->itemFromIndex(index);
     assume(item);
 
@@ -126,9 +120,8 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     return v.value<tanto::types::MultiValue>();
 }
 
-[[nodiscard]] QTreeWidgetItem* qttree_add(QTreeWidget* tree, tanto::types::MultiValue& item, const tanto::Header& header = {}, bool haschildren = true)
-{
-    QTreeWidgetItem* treeitem = new QTreeWidgetItem();
+[[nodiscard]] QTreeWidgetItem* qttree_add(QTreeWidget* tree, tanto::types::MultiValue& item, const tanto::Header& header = {}, bool haschildren = true) {
+    auto* treeitem = new QTreeWidgetItem();
     treeitem->setFlags(treeitem->flags() | Qt::ItemIsSelectable);
     if(!haschildren) treeitem->setFlags(treeitem->flags() | Qt::ItemNeverHasChildren);
 
@@ -139,30 +132,30 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     nlohmann::json row = nlohmann::json::object();
 
     std::visit(tanto::utils::Overload{
-             [&](tanto::types::Widget& a) {
-                  if(!header.empty()) {
-                      for(size_t i = 0; i < header.size(); i++) {
-                          if(!a.has_prop(header[i].id)) continue;
-                          nlohmann::json cell = a.prop<nlohmann::json>(header[i].id);
-                          treeitem->setText(i, QString::fromStdString(tanto::stringify(cell))); 
-                          row[header[i].id] = cell;
-                      }
-                  }
-                  else
-                    treeitem->setText(0, QString::fromStdString(a.text)); 
+                   [&](tanto::types::Widget& a) {
+        if(!header.empty()) {
+            for(size_t i = 0; i < header.size(); i++) {
+                if(!a.has_prop(header[i].id)) continue;
+                auto cell = a.prop<nlohmann::json>(header[i].id);
+                treeitem->setText(i, QString::fromStdString(tanto::stringify(cell)));
+                row[header[i].id] = cell;
+            }
+        }
+        else
+            treeitem->setText(0, QString::fromStdString(a.text));
 
-                  treeitem->setSelected(a.prop<bool>("selected"));
+        treeitem->setSelected(a.prop<bool>("selected"));
 
-                  if(haschildren) {
-                    for(tanto::types::MultiValue childitem : a.items)
-                        treeitem->addChild(qttree_add(tree, childitem, header, haschildren));
-                  }
-             },
-             [&](std::string& a) {
-                if(header.empty()) treeitem->setText(0, QString::fromStdString(a));
-                else except("Invalid model item: '{}'", a);
-             }
-    }, item);
+        if(haschildren) {
+            for(tanto::types::MultiValue childitem : a.items)
+                treeitem->addChild(qttree_add(tree, childitem, header, haschildren));
+        }
+                   },
+                   [&](std::string& a) {
+        if(header.empty()) treeitem->setText(0, QString::fromStdString(a));
+        else except("Invalid model item: '{}'", a);
+    }},
+        item);
 
     if(!header.empty())
         treeitem->setData(0, Qt::UserRole + 1, QString::fromStdString(row.dump()));
@@ -170,9 +163,8 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     return treeitem;
 }
 
-[[nodiscard]] QTreeWidget* qttree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true)
-{
-    QTreeWidget* w = new QTreeWidget();
+[[nodiscard]] QTreeWidget* qttree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true) {
+    auto* w = new QTreeWidget();
     w->setSelectionMode(QTreeWidget::SingleSelection);
     w->setSelectionBehavior(QTreeWidget::SelectRows);
     w->setRootIsDecorated(haschildren);
@@ -182,8 +174,7 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
     tanto::Header header = tanto::parse_header(arg);
     w->setHeaderHidden(header.empty());
 
-    if(!header.empty())
-    {
+    if(!header.empty()) {
         QStringList qheader;
 
         for(const tanto::HeaderItem& hitem : header)
@@ -196,10 +187,9 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
         w->addTopLevelItem(qttree_add(w, item, header, haschildren));
 
     apply_parent(w, qtcontainer_cast(parent), arg);
-    
-    if(arg.has_id())
-    {
-        auto itemselected = [self, haschildren, header, w, arg](const QModelIndex& index) {
+
+    if(arg.has_id()) {
+        auto itemselected = [self, header, w, arg](const QModelIndex& index) {
             tanto::types::MultiValue v = qttreeindex_getmultivalue(w, index);
 
             if(!header.empty()) {
@@ -222,10 +212,10 @@ QAction* qtadd_action(QWidget* w, const QString& text, const QKeySequence& short
 
 } // namespace
 
-BackendQtImpl::BackendQtImpl(int& argc, char* argv[]): Backend{argc, argv}, m_app{argc, argv} { }
+BackendQtImpl::BackendQtImpl(int& argc, char** argv): Backend{argc, argv},
+                                                      m_app{argc, argv} {}
 
-BackendQtImpl::~BackendQtImpl()
-{
+BackendQtImpl::~BackendQtImpl() {
     if(m_mainwindow) m_mainwindow->deleteLater();
     m_mainwindow = nullptr;
 }
@@ -233,9 +223,8 @@ BackendQtImpl::~BackendQtImpl()
 std::string_view BackendQtImpl::version() { return QT_VERSION_STR; }
 int BackendQtImpl::run() const { return m_app.exec(); }
 
-std::any BackendQtImpl::new_window(const tanto::types::Window& arg)
-{
-    MainWindow* mw = new MainWindow();
+std::any BackendQtImpl::new_window(const tanto::types::Window& arg) {
+    auto* mw = new MainWindow();
     mw->setWindowTitle(QString::fromStdString(arg.title));
     mw->setGeometry(arg.x, arg.y, arg.width, arg.height);
 
@@ -244,7 +233,7 @@ std::any BackendQtImpl::new_window(const tanto::types::Window& arg)
 
     QAction* act = qtadd_action(mw, QString{}, QKeySequence{Qt::Key_Escape}, qApp, &QApplication::exit);
     act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-    
+
     if(!arg.x && !arg.y) // Center window
     {
         QRect position = mw->frameGeometry();
@@ -254,14 +243,13 @@ std::any BackendQtImpl::new_window(const tanto::types::Window& arg)
 
     if(arg.fixed) mw->setFixedSize(arg.width, arg.height);
 
-    if(auto f = tanto::parse_font(arg.font); f)
-    {
+    if(auto f = tanto::parse_font(arg.font); f) {
         QFont font{QString::fromStdString(f->first)};
         if(f->second != -1) font.setPointSize(f->second);
         mw->setFont(font);
     }
 
-    QWidget* body = new QWidget();
+    auto* body = new QWidget();
     body->setObjectName(CENTRAL_WIDGET);
     mw->setCentralWidget(body);
 
@@ -273,11 +261,9 @@ std::any BackendQtImpl::new_window(const tanto::types::Window& arg)
 
 void BackendQtImpl::exit() { qApp->quit(); }
 
-nlohmann::json BackendQtImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w)
-{
-    if(w.type() == typeid(QTreeWidget*))
-    {
-        QTreeWidget* tree = std::any_cast<QTreeWidget*>(w);
+nlohmann::json BackendQtImpl::get_model_data(const tanto::types::Widget& arg, const std::any& w) {
+    if(w.type() == typeid(QTreeWidget*)) {
+        auto* tree = std::any_cast<QTreeWidget*>(w);
         QModelIndex index = tree->currentIndex();
         if(!index.isValid()) return nullptr;
 
@@ -287,29 +273,28 @@ nlohmann::json BackendQtImpl::get_model_data(const tanto::types::Widget& arg, co
             return nlohmann::json::parse(index.siblingAtColumn(0).data(Qt::UserRole + 1).toString().toStdString());
 
         return std::visit(tanto::utils::Overload{
-                            [&](tanto::types::Widget& a) { return a.get_id(); },
-                            [&](std::string& a) { return a; }
-                          }, v);
+                              [&](tanto::types::Widget& a) { return a.get_id(); },
+                              [&](std::string& a) { return a; }},
+                          v);
     }
-    else if(w.type() == typeid(QLineEdit*)) return std::any_cast<QLineEdit*>(w)->text().toStdString();
-    else if(w.type() == typeid(QPlainTextEdit*)) return std::any_cast<QPlainTextEdit*>(w)->toPlainText().toStdString();
-    else if(w.type() == typeid(QCheckBox*)) return std::any_cast<QCheckBox*>(w)->isChecked();
-    else if(w.type() == typeid(Picture*)) return std::any_cast<Picture*>(w)->filePath().toStdString();
-    else if(w.type() == typeid(QSpinBox*)) return std::any_cast<QSpinBox*>(w)->value();
+
+    if(w.type() == typeid(QLineEdit*)) return std::any_cast<QLineEdit*>(w)->text().toStdString();
+    if(w.type() == typeid(QPlainTextEdit*)) return std::any_cast<QPlainTextEdit*>(w)->toPlainText().toStdString();
+    if(w.type() == typeid(QCheckBox*)) return std::any_cast<QCheckBox*>(w)->isChecked();
+    if(w.type() == typeid(Picture*)) return std::any_cast<Picture*>(w)->file_path().toStdString();
+    if(w.type() == typeid(QSpinBox*)) return std::any_cast<QSpinBox*>(w)->value();
 
     return nullptr;
 }
 
-void BackendQtImpl::message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon)
-{
+void BackendQtImpl::message(const std::string& title, const std::string& text, MessageType mt, MessageIcon icon) {
     QMessageBox::Icon mbicon = QMessageBox::NoIcon;
 
-    switch(icon)
-    {
-        case MessageIcon::INFO:     mbicon = QMessageBox::Information; break;
-        case MessageIcon::WARNING:  mbicon = QMessageBox::Warning; break;
+    switch(icon) {
+        case MessageIcon::INFO: mbicon = QMessageBox::Information; break;
+        case MessageIcon::WARNING: mbicon = QMessageBox::Warning; break;
         case MessageIcon::QUESTION: mbicon = QMessageBox::Question; break;
-        case MessageIcon::ERROR:    mbicon = QMessageBox::Critical; break;
+        case MessageIcon::ERROR: mbicon = QMessageBox::Critical; break;
         default: break;
     }
 
@@ -321,8 +306,7 @@ void BackendQtImpl::message(const std::string& title, const std::string& text, M
 
     std::string response;
 
-    switch(msgbox.exec())
-    {
+    switch(msgbox.exec()) {
         case QMessageBox::Ok: this->send_event("ok"); break;
         case QMessageBox::Cancel: this->send_event("cancel"); break;
         case QMessageBox::NoButton: break;
@@ -330,8 +314,7 @@ void BackendQtImpl::message(const std::string& title, const std::string& text, M
     }
 }
 
-void BackendQtImpl::input(const std::string& title, const std::string& text, const std::string& value, InputType it)
-{
+void BackendQtImpl::input(const std::string& title, const std::string& text, const std::string& value, InputType it) {
     bool ok = false;
     QLineEdit::EchoMode echomode = it == InputType::PASSWORD ? QLineEdit::Password : QLineEdit::Normal;
 
@@ -342,8 +325,7 @@ void BackendQtImpl::input(const std::string& title, const std::string& text, con
     this->send_event(ok ? res.toStdString() : std::string{});
 }
 
-void BackendQtImpl::load_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir)
-{
+void BackendQtImpl::load_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir) {
     QString filepath = QFileDialog::getOpenFileName(nullptr,
                                                     title.empty() ? QString{} : QString::fromStdString(title),
                                                     startdir.empty() ? QString{} : QString::fromStdString(startdir),
@@ -352,8 +334,7 @@ void BackendQtImpl::load_file(const std::string& title, const tanto::FilterList&
     this->send_event(filepath.toStdString());
 }
 
-void BackendQtImpl::save_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir)
-{
+void BackendQtImpl::save_file(const std::string& title, const tanto::FilterList& filter, const std::string& startdir) {
     QString filepath = QFileDialog::getSaveFileName(nullptr,
                                                     title.empty() ? QString{} : QString::fromStdString(title),
                                                     startdir.empty() ? QString{} : QString::fromStdString(startdir),
@@ -362,8 +343,7 @@ void BackendQtImpl::save_file(const std::string& title, const tanto::FilterList&
     this->send_event(filepath.toStdString());
 }
 
-void BackendQtImpl::select_dir(const std::string& title, const std::string& startdir)
-{
+void BackendQtImpl::select_dir(const std::string& title, const std::string& startdir) {
     QString dir = QFileDialog::getExistingDirectory(nullptr,
                                                     title.empty() ? QString{} : QString::fromStdString(title),
                                                     startdir.empty() ? QString{} : QString::fromStdString(startdir),
@@ -372,8 +352,7 @@ void BackendQtImpl::select_dir(const std::string& title, const std::string& star
     this->send_event(dir.toStdString());
 }
 
-std::any BackendQtImpl::new_space(const tanto::types::Widget& arg, const std::any& parent)
-{
+std::any BackendQtImpl::new_space(const tanto::types::Widget& arg, const std::any& parent) {
     (void)arg;
 
     QObject* p = qtcontainer_cast(parent);
@@ -382,71 +361,60 @@ std::any BackendQtImpl::new_space(const tanto::types::Widget& arg, const std::an
     return nullptr;
 }
 
-std::any BackendQtImpl::new_text(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QLabel* w = new QLabel(QString::fromStdString(arg.text));
+std::any BackendQtImpl::new_text(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new QLabel(QString::fromStdString(arg.text));
     w->setEnabled(arg.enabled);
     return apply_parent(w, qtcontainer_cast(parent), arg);
 }
 
-std::any BackendQtImpl::new_input(const tanto::types::Widget& arg, const std::any& parent)
-{
-    if(arg.prop<bool>("multiline"))
-    {
-        QPlainTextEdit* w = new QPlainTextEdit();
+std::any BackendQtImpl::new_input(const tanto::types::Widget& arg, const std::any& parent) {
+    if(arg.prop<bool>("multiline")) {
+        auto* w = new QPlainTextEdit();
         w->setEnabled(arg.enabled);
         w->setPlainText(QString::fromStdString(arg.text));
         return apply_parent(w, qtcontainer_cast(parent), arg);
     }
-    else
-    {
-        QLineEdit* w = new QLineEdit();
-        w->setEnabled(arg.enabled);
-        w->setText(QString::fromStdString(arg.text));
-        w->setPlaceholderText(QString::fromStdString(arg.prop<std::string>("placeholder")));
-        return apply_parent(w, qtcontainer_cast(parent), arg);
-    }
+
+    auto* w = new QLineEdit();
+    w->setEnabled(arg.enabled);
+    w->setText(QString::fromStdString(arg.text));
+    w->setPlaceholderText(QString::fromStdString(arg.prop<std::string>("placeholder")));
+    return apply_parent(w, qtcontainer_cast(parent), arg);
 }
 
-std::any BackendQtImpl::new_number(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QSpinBox* w = new QSpinBox();
+std::any BackendQtImpl::new_number(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new QSpinBox();
     w->setEnabled(arg.enabled);
     w->setSingleStep(arg.prop<int>("step", 1));
 
     w->setRange(arg.prop<int>("min", tanto::NUMBER_MIN),
                 arg.prop<int>("max", tanto::NUMBER_MAX));
 
-
     w->setValue(arg.value);
     return apply_parent(w, qtcontainer_cast(parent), arg);
 }
 
-std::any BackendQtImpl::new_image(const tanto::types::Widget& arg, const std::any& parent)
-{
-    Picture* w = new Picture();
-    w->setImageSize(arg.width, arg.height);
-    if(!arg.text.empty()) w->loadImage(arg.text);
+std::any BackendQtImpl::new_image(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new Picture();
+    w->set_image_size(arg.width, arg.height);
+    if(!arg.text.empty()) w->load_image(arg.text);
     apply_parent(w, qtcontainer_cast(parent), arg);
 
-    if(arg.has_id())
-    {
-        QObject::connect(w, &Picture::doubleClicked, w, [&, arg, w]() {
-            this->double_clicked(arg, w->filePath().toStdString());
+    if(arg.has_id()) {
+        QObject::connect(w, &Picture::double_clicked, w, [&, arg, w]() {
+            this->double_clicked(arg, w->file_path().toStdString());
         });
     }
 
     return w;
 }
 
-std::any BackendQtImpl::new_button(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QPushButton* w = new QPushButton(QString::fromStdString(arg.text));
+std::any BackendQtImpl::new_button(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new QPushButton(QString::fromStdString(arg.text));
     w->setEnabled(arg.enabled);
     apply_parent(w, qtcontainer_cast(parent), arg);
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         QObject::connect(w, &QPushButton::clicked, w, [&, arg]() {
             this->clicked(arg);
         });
@@ -455,15 +423,13 @@ std::any BackendQtImpl::new_button(const tanto::types::Widget& arg, const std::a
     return w;
 }
 
-std::any BackendQtImpl::new_check(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QCheckBox* w = new QCheckBox(QString::fromStdString(arg.text));
+std::any BackendQtImpl::new_check(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new QCheckBox(QString::fromStdString(arg.text));
     w->setEnabled(arg.enabled);
     w->setChecked(arg.prop<bool>("checked"));
     apply_parent(w, qtcontainer_cast(parent), arg);
 
-    if(arg.has_id())
-    {
+    if(arg.has_id()) {
         QObject::connect(w, &QCheckBox::stateChanged, w, [&, arg](int state) {
             this->changed(arg, state == Qt::Checked);
         });
@@ -479,9 +445,8 @@ std::any BackendQtImpl::new_row(const tanto::types::Widget& arg, const std::any&
 std::any BackendQtImpl::new_column(const tanto::types::Widget& arg, const std::any& parent) { return apply_parent(new QVBoxLayout(), qtcontainer_cast(parent), arg); }
 std::any BackendQtImpl::new_grid(const tanto::types::Widget& arg, const std::any& parent) { return apply_parent(new QGridLayout(), qtcontainer_cast(parent), arg); }
 
-std::any BackendQtImpl::new_form(const tanto::types::Widget& arg, const std::any& parent)
-{
-    QFormLayout* w = new QFormLayout();
+std::any BackendQtImpl::new_form(const tanto::types::Widget& arg, const std::any& parent) {
+    auto* w = new QFormLayout();
     w->setLabelAlignment(Qt::AlignVCenter | Qt::AlignRight);
     return apply_parent(w, qtcontainer_cast(parent), arg);
 }

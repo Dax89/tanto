@@ -6,11 +6,10 @@
 
 class MainWindow;
 
-class BackendQtImpl: public Backend
-{
+class BackendQtImpl : public Backend {
 public:
-    BackendQtImpl(int& argc, char* argv[]);
-    ~BackendQtImpl();
+    BackendQtImpl(int& argc, char** argv);
+    ~BackendQtImpl() override;
     int run() const override;
     void exit() override;
     nlohmann::json get_model_data(const tanto::types::Widget& arg, const std::any& w) override;

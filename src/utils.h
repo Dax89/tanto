@@ -6,22 +6,27 @@
 
 namespace tanto::utils {
 
-template<class... Ts> struct Overload : Ts... { using Ts::operator()...; };
+template <class... Ts>
+struct Overload : Ts... {
+    using Ts::operator()...;
+};
 
 #if __cplusplus < 202002L
-template<class... Ts> Overload(Ts...) -> Overload<Ts...>; 
+template <class... Ts>
+Overload(Ts...) -> Overload<Ts...>;
 #endif // __cplusplus >= 202002L
 
-template<typename> constexpr bool always_false_v = false;
+template <typename>
+constexpr bool always_false_v = false;
 
 inline bool starts_with(const std::string& s, std::string_view what) { return s.find(what) == 0; }
 
 constexpr uint32_t fnv1a_32(std::string_view s) {
-    uint32_t h = 2166136261u;
+    uint32_t h = 2166136261U;
 
     for(char c : s) {
         h ^= c;
-        h *= 16777619u;
+        h *= 16777619U;
     }
 
     return h;

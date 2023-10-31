@@ -1,0 +1,56 @@
+---
+UseTab: Never
+TabWidth: 4
+PointerAlignment: Left
+QualifierAlignment: Left
+IndentWidth: 4
+AllowShortFunctionsOnASingleLine: All
+AccessModifierOffset: -4
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+BraceWrapping:
+  AfterFunction: false
+  AfterClass: false
+  BeforeElse: true
+  AfterNamespace: false
+  AfterCaseLabel: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: true
+  BeforeLambdaBody: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  IndentBraces: false
+  BeforeWhile: false
+  AfterExternBlock: false
+  AfterObjCDeclaration: false
+Standard: Latest
+SpaceBeforeParens: Never
+SpaceBeforeCtorInitializerColon: false
+SortIncludes: Never
+IncludeBlocks: Regroup
+BreakBeforeBraces: Custom
+AllowShortEnumsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+Cpp11BracedListStyle: true
+Language: Cpp
+LambdaBodyIndentation: OuterScope
+AlignArrayOfStructures: Right
+AlignOperands: Align
+AllowShortLoopsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+PackConstructorInitializers: CurrentLine
+ReflowComments: true
+ColumnLimit: 0
+IndentCaseBlocks: true
+IndentCaseLabels: true
+SeparateDefinitionBlocks: Leave
+FixNamespaceComments: true
+IndentPPDirectives: BeforeHash
+AlignConsecutiveBitFields:
+  Enabled: true
+AlignEscapedNewlines: Left
+BitFieldColonSpacing: Both
+BreakBeforeTernaryOperators: false

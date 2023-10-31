@@ -4,14 +4,12 @@
 #include "utils.h"
 #include "error.h"
 
-Events::ProcessedModel Events::process_model()
-{
+Events::ProcessedModel Events::process_model() {
     assume(m_ismodel);
 
     ProcessedModel pmodel;
 
-    for(const auto& [id, arg] : m_model)
-    {
+    for(const auto& [id, arg] : m_model) {
         nlohmann::json data = this->get_model_data(arg.first, arg.second);
         if(!data.is_null()) pmodel[id] = data;
     }
@@ -19,16 +17,14 @@ Events::ProcessedModel Events::process_model()
     return pmodel;
 }
 
-void Events::selected(const tanto::types::Widget& w, const nlohmann::json& row)
-{
+void Events::selected(const tanto::types::Widget& w, const nlohmann::json& row) {
     if(m_ismodel) return;
-    
+
     this->create_event("selected", w, row);
     this->exit();
 }
 
-void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value)
-{
+void Events::selected(const tanto::types::Widget& w, int index, tanto::types::MultiValue value) {
     if(m_ismodel) return;
 
     nlohmann::json detail = {
@@ -36,28 +32,25 @@ void Events::selected(const tanto::types::Widget& w, int index, tanto::types::Mu
     };
 
     std::visit(tanto::utils::Overload{
-            [&](tanto::types::Widget& a) { detail["id"] = a.get_id(); },
-            [&](std::string& a) { detail["id"] = a; }
-    }, value);
+                   [&](tanto::types::Widget& a) { detail["id"] = a.get_id(); },
+                   [&](std::string& a) { detail["id"] = a; }},
+               value);
 
     this->create_event("selected", w, detail);
 }
 
-void Events::changed(const tanto::types::Widget& w, const nlohmann::json& detail)
-{
+void Events::changed(const tanto::types::Widget& w, const nlohmann::json& detail) {
     if(m_ismodel) return;
 
     this->create_event("changed", w, detail);
 }
 
-void Events::clicked(const tanto::types::Widget& w, const nlohmann::json& detail)
-{ 
+void Events::clicked(const tanto::types::Widget& w, const nlohmann::json& detail) {
     this->create_event("clicked", w, detail);
     this->exit();
 }
 
-void Events::double_clicked(const tanto::types::Widget& w, const nlohmann::json& detail)
-{ 
+void Events::double_clicked(const tanto::types::Widget& w, const nlohmann::json& detail) {
     if(m_ismodel) return;
 
     this->create_event("doubleclicked", w, detail);
@@ -66,8 +59,7 @@ void Events::double_clicked(const tanto::types::Widget& w, const nlohmann::json&
 
 void Events::send_event(const std::string& s) { std::puts(s.c_str()); }
 
-void Events::create_event(const std::string& type, const tanto::types::Widget& w, const nlohmann::json& detail)
-{
+void Events::create_event(const std::string& type, const tanto::types::Widget& w, const nlohmann::json& detail) {
     assume(!w.id.empty());
 
     nlohmann::json event = {
@@ -80,4 +72,3 @@ void Events::create_event(const std::string& type, const tanto::types::Widget& w
 
     std::puts(event.dump().c_str());
 }
-
