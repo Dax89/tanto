@@ -146,8 +146,9 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
             if(!header.empty()) {
                 for(size_t j = 0; j < header.size(); j++) {
                     if(!a.has_prop(header[j].id)) continue;
+
                     auto cell = a.prop<nlohmann::json>(header[j].id);
-                    gtk_tree_store_set(model, &iter, j, tanto::stringify(cell.dump()).c_str(), -1);
+                    gtk_tree_store_set(model, &iter, j, tanto::stringify(cell).c_str(), -1);
                     row[header[j].id] = cell;
                 }
             }
@@ -202,7 +203,6 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
 [[nodiscard]] GtkWidget* gtktree_new(Backend* self, const tanto::types::Widget& arg, const std::any& parent, bool haschildren = true) {
     tanto::Header header = tanto::parse_header(arg);
     std::vector<std::string> selections;
-
     GtkTreeStore* model = nullptr;
 
     if(!header.empty()) {
@@ -224,8 +224,8 @@ void gtktree_add(GtkTreeStore* model, tanto::types::MultiValueList& items, std::
     g_widgets[w] = WidgetInfo{self, arg, header}; // Create internal entry too
 
     if(!header.empty()) {
-        for(const tanto::HeaderItem& hitem : header)
-            gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, hitem.text.c_str(), renderer, "text", 0, nullptr);
+        for(size_t i = 0; i < header.size(); i++)
+            gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, header[i].text.c_str(), renderer, "text", i, nullptr);
     }
     else
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(w), -1, nullptr, renderer, "text", 0, nullptr);
