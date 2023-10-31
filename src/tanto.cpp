@@ -98,8 +98,8 @@ std::optional<types::Window> parse(const nlohmann::json& jsonreq) {
 
     switch(utils::fnv1a_32(window.type)) {
         case "window"_fnv1a_32:
-        case "popup"_fnv1a_32:
-        case "tool"_fnv1a_32:
+            // case "popup"_fnv1a_32:
+            // case "tool"_fnv1a_32:
             break;
 
         default:

@@ -228,8 +228,8 @@ std::any BackendQtImpl::new_window(const tanto::types::Window& arg) {
     mw->setWindowTitle(QString::fromStdString(arg.title));
     mw->setGeometry(arg.x, arg.y, arg.width, arg.height);
 
-    if(arg.type == "popup") mw->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup | Qt::NoDropShadowWindowHint);
-    else if(arg.type == "tool") mw->setWindowFlags(Qt::Tool);
+    // if(arg.type == "popup") mw->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup | Qt::NoDropShadowWindowHint);
+    // else if(arg.type == "tool") mw->setWindowFlags(Qt::Tool);
 
     QAction* act = qtadd_action(mw, QString{}, QKeySequence{Qt::Key_Escape}, qApp, &QApplication::exit);
     act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
