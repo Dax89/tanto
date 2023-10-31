@@ -1,6 +1,6 @@
 # Tantō
 
-Tantō provides an easy way to create GUI-enabled scripts without installing external libraries/bindings.
+Tantō provides an easy way to create GUI-enabled scripts without installing external libraries/bindings.<br>
 It's communication protocol is based on JSON.
 
 |GTK3                        | Qt5/6                   |
