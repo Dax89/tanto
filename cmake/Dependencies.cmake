@@ -5,7 +5,7 @@ if(BACKEND_QT)
 endif()
 
 
-if(BACKEND_GTK)
+if(NOT WIN32 AND BACKEND_GTK)
     include(cmake/GTK.cmake)
 endif()
 

@@ -39,7 +39,7 @@ target_sources(${PROJECT_NAME}
         "src/backend.cpp"
 )
 
-if(BACKEND_QT)
+if(NOT WIN32 AND BACKEND_QT)
     target_sources(${PROJECT_NAME}
         PRIVATE
             "src/backends/qt/picture.cpp"
