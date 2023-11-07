@@ -1,56 +1,24 @@
 ---
-UseTab: Never
-TabWidth: 4
-PointerAlignment: Left
-QualifierAlignment: Left
-IndentWidth: 4
-AllowShortFunctionsOnASingleLine: All
+BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AllowShortIfStatementsOnASingleLine: AllIfsAndElse
-BraceWrapping:
-  AfterFunction: false
-  AfterClass: false
-  BeforeElse: true
-  AfterNamespace: false
-  AfterCaseLabel: false
-  AfterControlStatement: Never
-  AfterEnum: false
-  AfterStruct: false
-  AfterUnion: false
-  BeforeCatch: true
-  BeforeLambdaBody: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  IndentBraces: false
-  BeforeWhile: false
-  AfterExternBlock: false
-  AfterObjCDeclaration: false
-Standard: Latest
-SpaceBeforeParens: Never
-SpaceBeforeCtorInitializerColon: false
-SortIncludes: Never
-IncludeBlocks: Regroup
-BreakBeforeBraces: Custom
+ColumnLimit: 80
+IndentWidth: 4
+IndentPPDirectives: BeforeHash
+IndentCaseLabels: true
+PointerAlignment: Left
 AllowShortEnumsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortBlocksOnASingleLine: Always
-Cpp11BracedListStyle: true
-Language: Cpp
-LambdaBodyIndentation: OuterScope
-AlignArrayOfStructures: Right
-AlignOperands: Align
-AllowShortLoopsOnASingleLine: true
-AllowShortLambdasOnASingleLine: All
-PackConstructorInitializers: CurrentLine
-ReflowComments: true
-ColumnLimit: 0
-IndentCaseBlocks: true
-IndentCaseLabels: true
-SeparateDefinitionBlocks: Leave
-FixNamespaceComments: true
-IndentPPDirectives: BeforeHash
-AlignConsecutiveBitFields:
-  Enabled: true
-AlignEscapedNewlines: Left
-BitFieldColonSpacing: Both
-BreakBeforeTernaryOperators: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AlwaysBreakTemplateDeclarations: Yes
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeParens: Never
+UseTab: Never
+BreakBeforeBraces: Custom
+BreakAfterAttributes: Leave
+BraceWrapping:
+  BeforeCatch: true
+  BeforeElse: true

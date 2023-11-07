@@ -1,9 +1,9 @@
 #include "types.h"
-#include "utils.h"
 #include "error.h"
 #include "unordered_set"
+#include "utils.h"
 
-#define JSON_FIELD_T(x) \
+#define JSON_FIELD_T(x)                                                        \
     { #x, w.x }
 
 #define JSON_FIELD_F(x) w.x = j.value(#x, w.x)
@@ -11,18 +11,8 @@
 namespace {
 
 const std::unordered_set<std::string_view> WIDGET_BUILTINS = {
-    "id",
-    "type",
-    "title",
-    "group",
-    "text",
-    "value",
-    "width",
-    "height",
-    "enabled",
-    "fill",
-    "items",
-    "properties",
+    "id",    "type",   "title",   "group", "text",  "value",
+    "width", "height", "enabled", "fill",  "items", "properties",
 };
 
 } // namespace
@@ -45,7 +35,8 @@ void to_json(nlohmann::json& j, const Widget& w) {
     };
 
     for(const auto& [k, v] : w.properties) {
-        if(WIDGET_BUILTINS.count(k)) continue;
+        if(WIDGET_BUILTINS.count(k))
+            continue;
         j[k] = v;
     }
 
@@ -74,7 +65,8 @@ void from_json(const nlohmann::json& j, Widget& w) {
     JSON_FIELD_F(height);
 
     for(const auto& [k, v] : j.items()) {
-        if(WIDGET_BUILTINS.count(k)) continue;
+        if(WIDGET_BUILTINS.count(k))
+            continue;
         w.properties[k] = v;
     }
 

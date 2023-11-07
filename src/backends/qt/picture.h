@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QScrollArea>
-#include <QLabel>
 #include <QImage>
+#include <QLabel>
+#include <QScrollArea>
 #include <string>
 
-class Picture : public QScrollArea {
+class Picture: public QScrollArea {
     Q_OBJECT
 
 public:

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <string>
-#include <utility>
-#include <vector>
-#include <variant>
-#include <type_traits>
-#include <unordered_map>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace tanto::types {
 
@@ -35,17 +35,24 @@ struct Widget {
     explicit Widget(std::string t): type{std::move(t)} {}
     [[nodiscard]] inline bool has_group() const { return !group.empty(); }
     [[nodiscard]] inline bool has_id() const { return !id.empty(); }
-    [[nodiscard]] inline bool has_prop(std::string_view key) const { return properties.count(key); }
-    [[nodiscard]] inline const std::string& get_id() const { return id.empty() ? text : id; }
+    [[nodiscard]] inline bool has_prop(std::string_view key) const {
+        return properties.count(key);
+    }
+    [[nodiscard]] inline const std::string& get_id() const {
+        return id.empty() ? text : id;
+    }
     inline explicit operator bool() const { return !type.empty(); }
 
-    template <typename T>
+    template<typename T>
     inline T prop(std::string_view key, T fallback = T{}) const {
         auto it = properties.find(key);
-        if(it == properties.end()) return fallback;
+        if(it == properties.end())
+            return fallback;
 
-        if constexpr(std::is_same_v<T, nlohmann::json>) return it->second;
-        else return it->second.get<T>();
+        if constexpr(std::is_same_v<T, nlohmann::json>)
+            return it->second;
+        else
+            return it->second.get<T>();
     }
 
     friend void to_json(nlohmann::json& j, const Widget& w);
@@ -58,7 +65,9 @@ struct Window {
     bool fixed{false}, model{false};
     Widget body;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Window, type, title, font, x, y, width, height, fixed, model, body)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Window, type, title, font, x, y,
+                                                width, height, fixed, model,
+                                                body)
 };
 
 } // namespace tanto::types

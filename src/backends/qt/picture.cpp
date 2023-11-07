@@ -1,14 +1,13 @@
 #include "picture.h"
-#include <QLabel>
-#include <QImageReader>
-#include <QColorSpace>
-#include <QMouseEvent>
-#include <QUrl>
 #include "../../tanto.h"
 #include "../../utils.h"
+#include <QColorSpace>
+#include <QImageReader>
+#include <QLabel>
+#include <QMouseEvent>
+#include <QUrl>
 
-Picture::Picture(QWidget* parent): QScrollArea{parent},
-                                   m_label(new QLabel()) {
+Picture::Picture(QWidget* parent): QScrollArea{parent}, m_label(new QLabel()) {
     m_label->installEventFilter(this);
     m_label->setBackgroundRole(QPalette::Base);
     m_label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
@@ -39,7 +38,8 @@ void Picture::load_image(const std::string& imagepath) {
     reader.setAutoTransform(true);
 
     m_image = reader.read();
-    if(m_image.colorSpace().isValid()) m_image.convertToColorSpace(QColorSpace::SRgb);
+    if(m_image.colorSpace().isValid())
+        m_image.convertToColorSpace(QColorSpace::SRgb);
     this->update_image();
 }
 
@@ -65,7 +65,6 @@ void Picture::update_image() {
         h = std::ceil(this->width() * ratio);
     }
 
-    m_label->setPixmap(QPixmap::fromImage(m_image.scaled(QSize{w, h},
-                                                         Qt::IgnoreAspectRatio,
-                                                         Qt::SmoothTransformation)));
+    m_label->setPixmap(QPixmap::fromImage(m_image.scaled(
+        QSize{w, h}, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)));
 }

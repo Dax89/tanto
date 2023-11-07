@@ -1,15 +1,15 @@
 #pragma once
 
 #include <cstdio>
-#include <utility>
 #include <spdlog/spdlog.h>
+#include <utility>
 
 #if defined(__GNUC__) // GCC, Clang, ICC
     #include <array>
-    #include <string_view>
-    #include <execinfo.h>
-    #include <unistd.h>
     #include <cxxabi.h>
+    #include <execinfo.h>
+    #include <string_view>
+    #include <unistd.h>
 
     #define intrinsic_trap() __builtin_trap()
     #define intrinsic_unreachable() __builtin_unreachable()
@@ -33,21 +33,25 @@ inline std::string parse_backtrace(const char* b) {
     std::string s;
 
     size_t start = bt.find('(');
-    if(start == std::string_view::npos) return b;
+    if(start == std::string_view::npos)
+        return b;
 
     size_t end = bt.find('+', ++start);
     if(end == std::string_view::npos || end == start) {
         ++start; // Skip '+'
         end = bt.find(')', end);
-        if(end == std::string::npos) s.assign(b);
-        else s.assign(b, start, end - start);
+        if(end == std::string::npos)
+            s.assign(b);
+        else
+            s.assign(b, start, end - start);
     }
     else {
         s.assign(b, start, end - start);
 
         size_t len{};
         int status{};
-        char* unmangled = ::abi::__cxa_demangle(s.c_str(), nullptr, &len, &status);
+        char* unmangled =
+            ::abi::__cxa_demangle(s.c_str(), nullptr, &len, &status);
 
         if(unmangled) {
             s.assign(unmangled);
@@ -104,22 +108,22 @@ inline void print_backtrace() {}
 
 #define print_backtrace impl::print_backtrace();
 
-#define assume(...)                                                         \
-    do {                                                                    \
-        if(intrinsic_unlikely(!(__VA_ARGS__))) {                            \
-            SPDLOG_CRITICAL("Assume condition failed: '{}'", #__VA_ARGS__); \
-            ::impl::trap();                                                 \
-        }                                                                   \
+#define assume(...)                                                            \
+    do {                                                                       \
+        if(intrinsic_unlikely(!(__VA_ARGS__))) {                               \
+            SPDLOG_CRITICAL("Assume condition failed: '{}'", #__VA_ARGS__);    \
+            ::impl::trap();                                                    \
+        }                                                                      \
     } while(false)
 
-#define unreachable                                   \
-    do {                                              \
-        SPDLOG_CRITICAL("Unreachable code detected"); \
-        ::impl::unreachable();                        \
+#define unreachable                                                            \
+    do {                                                                       \
+        SPDLOG_CRITICAL("Unreachable code detected");                          \
+        ::impl::unreachable();                                                 \
     } while(false)
 
-#define except(...)                   \
-    do {                              \
-        SPDLOG_CRITICAL(__VA_ARGS__); \
-        ::impl::abort();              \
+#define except(...)                                                            \
+    do {                                                                       \
+        SPDLOG_CRITICAL(__VA_ARGS__);                                          \
+        ::impl::abort();                                                       \
     } while(false)

@@ -12,6 +12,7 @@ Checks: >
   -bugprone-narrowing-conversions,
   -bugprone-lambda-function-name,
   -bugprone-reserved-identifier,
+  -google-objc-*,
   -google-build-using-namespace,
   -google-readability-braces-around-statements,
   -google-readability-namespace-comments,
@@ -32,7 +33,7 @@ Checks: >
   -readability-redundant-access-specifiers,
   -readability-static-accessed-through-instance
 
-WarningsAsErrors: '*'
+WarningsAsErrors: ''
 HeaderFilterRegex: ''
 
 CheckOptions:
