@@ -72,11 +72,7 @@ std::string read_stdin() {
 }
 
 int execute_mode(const BackendPtr& backend, cl::Values& values) {
-    if(values["list"].to_bool()) {
-        for(const auto& [name, version] : BACKENDS)
-            fmt::println("{}: {}", name, version);
-    }
-    else if(values["message"].to_bool() || values["confirm"].to_bool()) {
+    if(values["message"].to_bool() || values["confirm"].to_bool()) {
         Backend::MessageIcon icon = Backend::MessageIcon::NONE;
 
         if(values["info"].to_bool())
@@ -189,6 +185,13 @@ int main(int argc, char** argv) {
     if(options["debug"].to_bool()) {
         for(const auto& arg : options)
             fmt::println("{} - {}", arg.first, arg.second.dump());
+    }
+
+    if(options["list"].to_bool()) {
+        for(const auto& [name, version] : BACKENDS)
+            fmt::println("{}: {}", name, version);
+
+        return 0;
     }
 
     if(!options["backend"]) {
