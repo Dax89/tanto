@@ -55,8 +55,8 @@ using BackendPtr = std::unique_ptr<Backend>;
     except("Backend '{}' not found", name);
 }
 
-tanto::FilterList parse_filter(const cl::Value& v) {
-    return tanto::parse_filter(v ? v.to_stringview() : std::string_view{});
+tanto::FilterList parse_filter(const cl::Value& arg) {
+    return tanto::parse_filter(arg ? arg.to_stringview() : std::string_view{});
 }
 
 std::string read_stdin() {
@@ -71,51 +71,50 @@ std::string read_stdin() {
     return input;
 }
 
-int execute_mode(const BackendPtr& backend, cl::Values& values) {
-    if(values["message"].to_bool() || values["confirm"].to_bool()) {
+int execute_mode(const BackendPtr& backend, cl::Values& args) {
+    if(args["message"].to_bool() || args["confirm"].to_bool()) {
         Backend::MessageIcon icon = Backend::MessageIcon::NONE;
 
-        if(values["info"].to_bool())
+        if(args["info"].to_bool())
             icon = Backend::MessageIcon::INFO;
-        else if(values["question"].to_bool())
+        else if(args["question"].to_bool())
             icon = Backend::MessageIcon::QUESTION;
-        else if(values["warning"].to_bool())
+        else if(args["warning"].to_bool())
             icon = Backend::MessageIcon::WARNING;
-        else if(values["error"].to_bool())
+        else if(args["error"].to_bool())
             icon = Backend::MessageIcon::ERROR;
 
-        backend->message(
-            values["title"].to_string(), values["text"].to_string(),
-            values["confirm"].to_bool() ? Backend::MessageType::CONFIRM
-                                        : Backend::MessageType::MESSAGE,
-            icon);
+        backend->message(args["title"].to_string(), args["text"].to_string(),
+                         args["confirm"].to_bool()
+                             ? Backend::MessageType::CONFIRM
+                             : Backend::MessageType::MESSAGE,
+                         icon);
     }
-    else if(values["input"].to_bool() || values["password"].to_bool()) {
+    else if(args["input"].to_bool() || args["password"].to_bool()) {
         std::string text =
-            values["text"] ? values["text"].to_string() : std::string{};
+            args["text"] ? args["text"].to_string() : std::string{};
         std::string value =
-            values["value"] ? values["value"].to_string() : std::string{};
-        backend->input(values["title"].to_string(), text, value,
-                       values["password"].to_bool()
-                           ? Backend::InputType::PASSWORD
-                           : Backend::InputType::NORMAL);
+            args["value"] ? args["value"].to_string() : std::string{};
+        backend->input(args["title"].to_string(), text, value,
+                       args["password"].to_bool() ? Backend::InputType::PASSWORD
+                                                  : Backend::InputType::NORMAL);
     }
-    else if(values["selectdir"].to_bool()) {
+    else if(args["selectdir"].to_bool()) {
         backend->select_dir(
-            values["title>"] ? values["title"].to_string() : std::string{},
-            values["dir>"] ? values["dir"].to_string() : std::string{});
+            args["title>"] ? args["title"].to_string() : std::string{},
+            args["dir>"] ? args["dir"].to_string() : std::string{});
     }
-    else if(values["loadfile"].to_bool()) {
+    else if(args["loadfile"].to_bool()) {
         backend->load_file(
-            values["title>"] ? values["title"].to_string() : std::string{},
-            parse_filter(values["filter"]),
-            values["dir>"] ? values["dir"].to_string() : std::string{});
+            args["title>"] ? args["title"].to_string() : std::string{},
+            parse_filter(args["filter"]),
+            args["dir>"] ? args["dir"].to_string() : std::string{});
     }
-    else if(values["savefile"].to_bool()) {
+    else if(args["savefile"].to_bool()) {
         backend->save_file(
-            values["title"] ? values["title"].to_string() : std::string{},
-            parse_filter(values["filter"]),
-            values["dir"] ? values["dir"].to_string() : std::string{});
+            args["title"] ? args["title"].to_string() : std::string{},
+            parse_filter(args["filter"]),
+            args["dir"] ? args["dir"].to_string() : std::string{});
     }
     else
         unreachable;
@@ -127,14 +126,14 @@ bool needs_json(cl::Values& values) {
     return values["stdin"].to_bool() || values["load"].to_bool();
 }
 
-int execute_json(const BackendPtr& backend, cl::Values& values) {
+int execute_json(const BackendPtr& backend, cl::Values& args) {
     nlohmann::json jsonreq;
 
     try {
-        if(values["stdin"].to_bool())
+        if(args["stdin"].to_bool())
             jsonreq = nlohmann::json::parse(read_stdin());
-        else if(values["load"].to_bool()) {
-            std::ifstream f{std::string{values["filename"].to_string()}};
+        else if(args["load"].to_bool()) {
+            std::ifstream f{std::string{args["filename"].to_string()}};
             jsonreq = nlohmann::json::parse(f);
         }
         else
@@ -180,27 +179,27 @@ int main(int argc, char** argv) {
     };
     // clang-format on
 
-    auto options = cl::parse(argc, argv);
+    auto args = cl::parse(argc, argv);
 
-    if(options["debug"].to_bool()) {
-        for(const auto& arg : options)
+    if(args["debug"].to_bool()) {
+        for(const auto& arg : args)
             fmt::println("{} - {}", arg.first, arg.second.dump());
     }
 
-    if(options["list"].to_bool()) {
+    if(args["list"].to_bool()) {
         for(const auto& [name, version] : BACKENDS)
             fmt::println("{}: {}", name, version);
 
         return 0;
     }
 
-    if(!options["backend"]) {
+    if(!args["backend"]) {
         char* envbackend = std::getenv("TANTO_BACKEND");
         if(envbackend)
             selected_backend = envbackend;
     }
     else
-        selected_backend = options["backend"].to_string();
+        selected_backend = args["backend"].to_string();
 
     if(!BACKENDS.count(selected_backend)) {
         fmt::println("ERROR: Unsupported backend '{}'", selected_backend);
@@ -209,7 +208,7 @@ int main(int argc, char** argv) {
 
     BackendPtr backend = new_backend(selected_backend, argc, argv);
 
-    if(needs_json(options))
-        return execute_json(backend, options);
-    return execute_mode(backend, options);
+    if(needs_json(args))
+        return execute_json(backend, args);
+    return execute_mode(backend, args);
 }
