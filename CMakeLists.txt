@@ -39,7 +39,7 @@ target_sources(${PROJECT_NAME}
         "src/backend.cpp"
 )
 
-if(NOT WIN32 AND BACKEND_QT)
+if(BACKEND_QT)
     target_sources(${PROJECT_NAME}
         PRIVATE
             "src/backends/qt/picture.cpp"
@@ -55,7 +55,7 @@ if(NOT WIN32 AND BACKEND_QT)
     link_qt_libraries(${PROJECT_NAME})
 endif()
 
-if(BACKEND_GTK)
+if(NOT WIN32 AND BACKEND_GTK)
     target_sources(${PROJECT_NAME}
         PRIVATE
             "src/backends/gtk/backendimpl.cpp"
