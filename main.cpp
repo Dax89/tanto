@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
     using namespace cl::string_literals;
 
     // clang-format off
+    cl::set_program("tanto");
     cl::set_name("Tanto");
     cl::set_description("The Universal GUI");
     cl::set_version("1.0");
