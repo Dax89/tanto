@@ -1,6 +1,7 @@
 #include "src/backend.h"
 #include "src/error.h"
 #include "src/tanto.h"
+#include <algorithm>
 #include <cl/cl.h>
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -8,7 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <unordered_map>
+#include <vector>
 
 #if defined(BACKEND_QT)
     #include "src/backends/qt/backendimpl.h"
@@ -26,33 +27,38 @@ extern "C" const char* __lsan_default_options() { // NOLINT
 
 namespace {
 
-const std::unordered_map<std::string_view, std::string_view> BACKENDS {
-#if defined(BACKEND_QT)
-    {"qt", BackendQtImpl::version()},
-#endif
+const std::vector<std::pair<std::string_view, std::string_view>> BACKENDS {
 #if defined(BACKEND_GTK)
-        {"gtk", BackendGtkImpl::version()},
+    {"gtk", BackendGtkImpl::version()},
+#endif
+#if defined(BACKEND_QT)
+        {"qt", BackendQtImpl::version()},
 #endif
 };
 
-std::string selected_backend{"gtk"};
+std::string selectedbackend;
 
 using BackendPtr = std::unique_ptr<Backend>;
 
 [[nodiscard]] BackendPtr new_backend(const std::string& name, int argc,
                                      char** argv) {
+#if defined(BACKEND_GTK)
+    if(name == "gtk")
+        return std::make_unique<BackendGtkImpl>(argc, argv);
+#endif // defined(BACKEND_GTK)
 
 #if defined(BACKEND_QT)
     if(name == "qt")
         return std::make_unique<BackendQtImpl>(argc, argv);
 #endif // defined(BACKEND_QT)
 
-#if defined(BACKEND_GTK)
-    if(name == "gtk")
-        return std::make_unique<BackendGtkImpl>(argc, argv);
-#endif // defined(BACKEND_GTK)
-
     except("Backend '{}' not found", name);
+}
+
+bool has_backend(std::string_view n) {
+    return std::find_if(BACKENDS.begin(), BACKENDS.end(), [n](const auto& x) {
+               return x.first == n;
+           }) != BACKENDS.end();
 }
 
 tanto::FilterList parse_filter(const cl::Value& arg) {
@@ -179,6 +185,13 @@ int main(int argc, char** argv) {
     };
     // clang-format on
 
+    if(BACKENDS.empty()) {
+        fmt::println("ERROR: No backends available");
+        return 2;
+    }
+
+    selectedbackend = BACKENDS.begin()->first;
+
     auto args = cl::parse(argc, argv);
 
     if(args["debug"].to_bool()) {
@@ -196,17 +209,17 @@ int main(int argc, char** argv) {
     if(!args["backend"]) {
         char* envbackend = std::getenv("TANTO_BACKEND");
         if(envbackend)
-            selected_backend = envbackend;
+            selectedbackend = envbackend;
     }
     else
-        selected_backend = args["backend"].to_string();
+        selectedbackend = args["backend"].to_string();
 
-    if(!BACKENDS.count(selected_backend)) {
-        fmt::println("ERROR: Unsupported backend '{}'", selected_backend);
+    if(!has_backend(selectedbackend)) {
+        fmt::println("ERROR: Unsupported backend '{}'", selectedbackend);
         return 1;
     }
 
-    BackendPtr backend = new_backend(selected_backend, argc, argv);
+    BackendPtr backend = new_backend(selectedbackend, argc, argv);
 
     if(needs_json(args))
         return execute_json(backend, args);
