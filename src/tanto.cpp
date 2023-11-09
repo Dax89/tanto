@@ -191,8 +191,10 @@ std::string download_file(const std::string& url) {
     curl_easy_cleanup(curl_handle);
     curl_global_init(CURL_GLOBAL_ALL);
 #elif defined(_WIN32)
-    // https://stackoverflow.com/questions/66389908/download-url-file-from-direct-download-url-c
-    #error "Windows is not supported (yet)"
+    HRESULT hr =
+        URLDownloadToFileA(nullptr, url.c_str(), filepath.c_str(), 0, nullptr);
+    if(hr != S_OK)
+        return std::string{};
 #endif
 
     return filepath;

@@ -91,5 +91,6 @@ elseif(WIN32)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC
             wininet
+            urlmon
     )
 endif()
