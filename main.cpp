@@ -61,7 +61,7 @@ bool has_backend(std::string_view n) {
            }) != BACKENDS.end();
 }
 
-tanto::FilterList parse_filter(const cl::Value& arg) {
+tanto::FilterList parse_filter(const cl::Arg& arg) {
     return tanto::parse_filter(arg ? arg.to_stringview() : std::string_view{});
 }
 
@@ -77,7 +77,7 @@ std::string read_stdin() {
     return input;
 }
 
-int execute_mode(const BackendPtr& backend, cl::Values& args) {
+int execute_mode(const BackendPtr& backend, cl::Args& args) {
     if(args["message"].to_bool() || args["confirm"].to_bool()) {
         Backend::MessageIcon icon = Backend::MessageIcon::NONE;
 
@@ -128,11 +128,11 @@ int execute_mode(const BackendPtr& backend, cl::Values& args) {
     return 0;
 }
 
-bool needs_json(cl::Values& values) {
-    return values["stdin"].to_bool() || values["load"].to_bool();
+bool needs_json(cl::Args& args) {
+    return args["stdin"].to_bool() || args["load"].to_bool();
 }
 
-int execute_json(const BackendPtr& backend, cl::Values& args) {
+int execute_json(const BackendPtr& backend, cl::Args& args) {
     nlohmann::json jsonreq;
 
     try {
