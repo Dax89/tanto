@@ -12,8 +12,6 @@ if(UNIX AND NOT APPLE)
  find_package(CURL REQUIRED)
 endif()
 
-set(PROJECT_NAME_TEST "${PROJECT_NAME}_test")
-
 include(cmake/Settings.cmake)
 include(cmake/Dependencies.cmake)
 setup_dependencies()
