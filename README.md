@@ -1,6 +1,6 @@
 Tantō
 ========
-Tantō provides an easy way to create GUI-enabled scripts without installing external libraries/bindings.<br>
+Tanto provides an easy way to create GUI-enabled scripts without installing external libraries/bindings.<br>
 It's communication protocol is based on JSON.
 
 |GTK3                        | Qt5/6                   |
@@ -31,22 +31,24 @@ Command Line Arguments
 -----
 ```
 Usage:
-        tanto stdin [--debug] [--backend=<name>]
-        tanto load <filename> [--debug] [--backend=<name>]
-        tanto message <title> <text> [(info|question|warning|error)] [--debug] [--backend=<name>]
-        tanto confirm <title> <text> [(info|question|warning|error)] [--debug] [--backend=<name>]
-        tanto input <title> [<text>] [<value>] [--debug] [--backend=<name>]
-        tanto password <title> [<text>] [--debug] [--backend=<name>]
-        tanto selectdir [<title>] [<dir>] [--debug] [--backend=<name>]
-        tanto loadfile [<title>] [<filter>] [<dir>] [--debug] [--backend=<name>]
-        tanto savefile [<title>] [<filter>] [<dir>] [--debug] [--backend=<name>]
-        tanto list
+  tanto stdin [--debug] [--backend=ARG]
+  tanto load <filename> [--debug] [--backend=ARG]
+  tanto message <title> <text> [(info|question|warning|error)] [--debug] [--backend=ARG]
+  tanto confirm <title> <text> [(info|question|warning|error)] [--debug] [--backend=ARG]
+  tanto input <title> [text] [value] [--debug] [--backend=ARG]
+  tanto password <title> [text] [--debug] [--backend=ARG]
+  tanto selectdir [title] [dir] [--debug] [--backend=ARG]
+  tanto loadfile [title] [filter] [dir] [--debug] [--backend=ARG]
+  tanto savefile [title] [filter] [dir] [--debug] [--backend=ARG]
+  tanto list [--debug]
+  tanto --version
+  tanto --help
 
-    Options:
-        -h --help            Show this screen.
-        -v --version         Show version.
-        -d --debug           Debug mode.
-        -b --backend=<name>  Select backend.
+Options:
+  -h --help        Show this screen
+  -v --version     Show version
+  -d --debug       Debug mode
+  -b --backend=ARG Select backend
 ```
 
 
