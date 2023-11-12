@@ -12,7 +12,7 @@ endif()
 function(setup_dependencies)
     CPMAddPackage("gh:fmtlib/fmt#10.1.1")
     CPMAddPackage("gh:nlohmann/json@3.11.2")
-    CPMAddPackage("gh:Dax89/cl#master")
+    CPMAddPackage("gh:Dax89/cl@1.0.0")
 
     CPMAddPackage(
         NAME spdlog
